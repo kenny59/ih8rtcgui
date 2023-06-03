@@ -1,12 +1,7 @@
 <html>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
-<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-<script src="https://cdn.datatables.net/v/dt/jq-3.6.0/dt-1.13.4/datatables.min.js"></script>
-<script src="https://cdn.datatables.net/fixedcolumns/4.2.2/js/dataTables.fixedColumns.min.js"></script>
+<link href="https://cdn.datatables.net/v/dt/dt-1.13.4/datatables.min.css" rel="stylesheet"/>
 <style type="text/css">
     body {
         background-color: white;
@@ -19,34 +14,72 @@
             color: white;
         }
     }
+
+    ul, .wrap_everything {
+        white-space: normal !important;
+    }
 </style>
 <body>
-<label for="project-area">Project area</label><input type="text" id="project-area" value=""/>
-<label for="date">Modified date after</label><input type="date" id="date" value="2023-05-17" data-date-format="dd-mm-yyyy"/>
-<input type="button" id="team-area-selector-button" value="SEARCH" class="btn btn-primary"/>
-<label for="refresh-interval">Refresh interval</label>
-<select id="refresh-interval">
-    <option value="0">Off</option>
-    <option value="60">Every 1 minute</option>
-    <option value="300">Every 5 minutes</option>
-    <option value="9000">Every 30 minutes</option>
-    <option value="18000">Every 1 hour</option>
-</select>
-<table class="table" id="workitem-list">
-    <thead>
-    <tr>
-        <th scope="col">RTC #</th>
-        <th scope="col">State</th>
-        <th scope="col">Summary</th>
-        <th scope="col">Owner</th>
-        <th scope="col">Modified Date</th>
-        <th scope="col">Tags</th>
-    </tr>
-    </thead>
-    <tbody>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="form-floating">
+                <select class="form-select" id="project-area" aria-label="Project area">
+                    <option selected>Add items in Config</option>
+                </select>
+                <label for="project-area">Project area</label>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="form-floating">
+                <select class="form-select" id="filter-by" aria-label="Filter by">
+                    <option value="modified" selected>Modified</option>
+                    <option value="creationDate">Created</option>
+                </select>
+                <label for="filter-by">Filter by</label>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="form-floating">
+                <select class="form-select" id="filter-type" aria-label="Filter type">
+                    <option value=">" selected>after</option>
+                    <option value="<">before</option>
+                </select>
+                <label for="filter-type">Filter type</label>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="form-floating">
+                <input type="date" id="date" class="form-control" data-date-format="dd-mm-yyyy"/>
+                <label for="date">Date</label>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <input type="button" id="team-area-selector-button" value="SEARCH" class="btn btn-primary btn-lg" style="width: 100%; height: 100%"/>
+        </div>
+    </div>
 
-    </tbody>
-    <tfoot>
+    <hr class="hr" />
+
+    <div class="row">
+        <div class="col-md-3 offset-md-9">
+            <div class="form-floating">
+                <select id="refresh-interval" class="form-select">
+                    <option value="0">Off</option>
+                    <option value="60">Every 1 minute</option>
+                    <option value="300">Every 5 minutes</option>
+                    <option value="9000">Every 30 minutes</option>
+                    <option value="18000">Every 1 hour</option>
+                </select>
+                <label for="refresh-interval">Refresh interval</label>
+            </div>
+        </div>
+    </div>
+
+    <hr class="hr" />
+
+    <table class="table nowrap" id="workitem-list" style="width: 100%; min-width: 1024px; white-space: normal; word-wrap: break-word;">
+        <thead>
         <tr>
             <th scope="col">RTC #</th>
             <th scope="col">State</th>
@@ -55,8 +88,30 @@
             <th scope="col">Modified Date</th>
             <th scope="col">Tags</th>
         </tr>
-    </tfoot>
-</table>
-<script src="app.js"></script>
+        </thead>
+        <tbody>
+
+        </tbody>
+        <tfoot>
+        <tr>
+            <th scope="col">RTC #</th>
+            <th scope="col">State</th>
+            <th scope="col">Summary</th>
+            <th scope="col">Owner</th>
+            <th scope="col">Modified Date</th>
+            <th scope="col">Tags</th>
+        </tr>
+        </tfoot>
+    </table>
+</div>
+
+
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+<script src="https://cdn.datatables.net/v/dt/jq-3.6.0/dt-1.13.4/fc-4.2.2/r-2.4.1/datatables.min.js"></script>
+
+
+
+<script src="./app.js"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, safeStorage, ipcRenderer} = require('electron')
+const { app, BrowserWindow, safeStorage, ipcRenderer, Menu, dialog} = require('electron')
 const path = require('path')
 const util = require("util");
 let { ipcMain } = require("electron")
@@ -32,27 +32,83 @@ const store = new Store({
     watch: true,
     encryptionKey: 'very_secure_obfuscation_key',
 });
-function setPassword(key, password) {
-    const buffer = safeStorage.encryptString(password);
-    store.set(key, buffer.toString('latin1'));
+
+let defaultConfig = {
+    history: {
+        lastProjectArea: '',
+        lastDate: '',
+        lastFilterBy: '',
+        lastFilterType: ''
+    },
+    projectAreas: [],
+    baseUrl: '',
+    hasSavedPassword: false,
+    useSavedPassword: false
 }
 
-function deletePassword(key) {
-    store.delete(key);
+if(!store.get("config")) {
+    store.set("config", defaultConfig);
 }
-
-function getCredentials() {
-    return Object.entries(store.store).reduce((credentials, [account, buffer]) => {
-        return [...credentials, { account, password: safeStorage.decryptString(Buffer.from(buffer, 'latin1')) }];
-    }, []);
-};
 
 let _win;
+
+function createConfigWindow() {
+    const configWindow = new BrowserWindow({
+        width: 800,
+        height: 600,
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            nodeIntegration: true,
+            contextIsolation: false,
+            devTools: true
+        }
+    });
+    configWindow.loadFile("./config/config.html");
+}
+
 function createWindow () {
+
+    const menu = Menu.getApplicationMenu(); // get default menu
+
+    const menuTest = Menu.buildFromTemplate(
+        [{
+                label: "Caches",
+                submenu: [
+                    {
+                        label: "Delete all data",
+                        click: () => {
+                            let text = "You are about to delete stored passwords, base url and project areas.\nAre you sure?";
+                            let options  = {
+                                buttons: ["Yes","No", "Cancel"],
+                                message: text
+                            }
+                            dialog.showMessageBox(options).then((response, checkboxChecked) => {
+                                if(response.response === 0) {
+                                    cookiesList = [];
+                                    store.set("config", defaultConfig);
+                                    store.delete("user");
+                                    store.delete("pass");
+                                }
+                            })
+                        }
+                    }
+                ]
+    }])
+    menu.append(menuTest.items[0]);
+    menu.append(Menu.buildFromTemplate([{
+        label: "Open configs",
+        click: () => {
+            createConfigWindow();
+        }
+    }]).items[0]);
+    Menu.setApplicationMenu(menu); // set the modified menu
+
 
     const win = new BrowserWindow({
         width: 800,
         height: 600,
+        minWidth: 1024,
+        minHeight: 720,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: true,
@@ -99,19 +155,20 @@ app.on('window-all-closed', () => {
 let allDataList = [];
 
 ipcMain.handle("getDefaultValues", (event) => {
-    return store.get("defaultValues");
+    return store.get("config");
 })
 
-ipcMain.handle("loadWorkItems", async (event, projectArea, date) => {
-    store.set("defaultValues", {
-        projectArea: projectArea,
-        date: date
-    });
+ipcMain.handle("loadWorkItems", async (event, projectArea, date, filterBy, filterType) => {
+    store.set("config.history.lastProjectArea", projectArea);
+    store.set("config.history.lastDate", date);
+    store.set("config.history.lastFilterBy", filterBy);
+    store.set("config.history.lastFilterType", filterType);
+
     let filters = [`projectArea/name='${projectArea}'`];
     //let tagFilters = tag.split(",").map(t => `tags=|${t}|`).join(" or ");
     if(date !== "") {
         const dateMoment = moment(date).utc(true).format("YYYY-MM-DDTHH:mm:ss.SSSZZ").replace("+", "-")
-        filters.push(`modified>${dateMoment}`);
+        filters.push(`${filterBy}${filterType}${dateMoment}`);
     }
     //filters.push(tagFilters);
     let size = 5;
@@ -136,7 +193,7 @@ async function login(username, password) {
     let url = new URL(BASE_URL);
     myHeaders.append("Referer", `${BASE_URL}/auth/authrequired`);
     myHeaders.append("Host", `${url.host}`);
-    myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
+    myHeaders.append("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
     myHeaders.append("Origin", `${url.protocol}//${url.host}`);
 
     var requestOptions = {
@@ -156,7 +213,7 @@ async function login(username, password) {
     if(!response1.headers.get('set-cookie')) {
         return [];
     }
-    cookiesList.push(response1.headers.get('set-cookie').split(';')[0]);
+    cookiesList.push(...response1?.headers?.raw()?.["set-cookie"]?.map(c => c.split(";")[0]));
 
 
     requestOptions.redirect = 'follow';
@@ -165,7 +222,7 @@ async function login(username, password) {
 
     let response2 = await fetch(BASE_URL + "/j_security_check", requestOptions);
     let authreq = response2.headers.get('x-com-ibm-team-repository-web-auth-msg');
-    if(authreq !== null) {
+    if(authreq !== null || response2.status !== 200) {
         console.log('Unsuccessful auth');
         return [];
     }
@@ -176,49 +233,57 @@ async function login(username, password) {
 
 ipcMain.handle("getUserNameAndDummyPass", (event) => {
     let user = store.get("user");
-    let pass = (store.get("pass"));
-    if(user && pass) {
-        store.set("autopopulatedCredentials", true);
-    } else {
-        store.set("autopopulatedCredentials", false);
-    }
-    return {user: user, pass: "*".repeat(8)};
+    let pass = store.get("pass");
+    return {user: user, pass: "*".repeat(8), hasSavedPass: store.get("config.hasSavedPassword"), useSavedPass: store.get("config.useSavedPassword")};
 })
 
 async function loginWithSavedCredentials() {
     return await loginProcess(store.get("user"), safeStorage.decryptString(Buffer.from(store.get("pass"))), store.get("saveCredentials"));
 }
 
-async function loginProcess(username, password, saveCredentials) {
-    if(store.get("autopopulatedCredentials")) {
-        username = store.get("user");
-        password = safeStorage.decryptString(Buffer.from(store.get("pass")));
+async function loginProcess(username, password, saveCredentials, useSavedCredentials) {
+    if(useSavedCredentials) {
+        if(store.get("user") && store.get("pass")) {
+            username = store.get("user");
+            password = safeStorage.decryptString(Buffer.from(store.get("pass")));
+        } else {
+            return {success: false, message: 'You have no stored password, please enter password.'};
+        }
     }
+    store.set("config.useSavedPassword", useSavedCredentials)
     let cookiesFromLogin = await login(username, password);
-    if(cookiesFromLogin.length === 2) {
+    if(cookiesFromLogin.length >= 2) {
         cookiesList = cookiesFromLogin;
         if(saveCredentials) {
             store.set("pass", safeStorage.encryptString(password));
             store.set("user", username);
-            store.set("autopopulatedCredentials", true)
+            store.set("config.hasSavedPassword", true)
             //save credentials
         }
-        return true;
+        return {success: true, message: ''};
         //successful login
     } else {
-        return false;
+        return {success: false, message: 'Wrong username/password combination'};
     }
 }
 
-ipcMain.handle("login", async (event, username, password, saveCredentials) => {
-    let loginResponse = await loginProcess(username, password, saveCredentials);
-    if(loginResponse) _win.loadFile("index.html");
+ipcMain.handle("login", async (event, username, password, saveCredentials, useSavedCredentials) => {
+    let loginResponse = await loginProcess(username, password, saveCredentials, useSavedCredentials);
+    if(loginResponse.success) _win.loadFile("index.html");
     return loginResponse;
 });
 
 ipcMain.handle("loadWorkItemData", async (event, rtcNo) => {
-    let url = `${BASE_URL}/rpt/repository/workitem?fields=workitem/workItem[id=${rtcNo}]/(*|allExtensions/displayValue|comments/creator/name|comments/content|comments/creationDate)`;
+    let url = `${BASE_URL}/rpt/repository/workitem?fields=workitem/workItem[id=${rtcNo}]/(*|allExtensions/displayValue|comments/creator/name|comments/formattedContent|comments/creationDate|itemHistory/modifiedBy/name|itemHistory/*|itemHistory/owner/name|itemHistory/state/name)`;
     return await getData(url);
+})
+
+ipcMain.handle("saveConfig", (event, baseUrl, projectAreas) => {
+    store.set("config.baseUrl", baseUrl);
+    BASE_URL = baseUrl;
+    store.set("config.projectAreas", projectAreas.split("\n"))
+    _win.webContents.send("changedConfig", store.get("config"));
+    return "Saved config successfully";
 })
 
 let STEPS = 1000;
@@ -241,16 +306,19 @@ async function getData(url) {
             //'Cookie': cookiesList.map(cookie => `${cookie.name}=${cookie.value}`).join(";")
         }
     });
+    if(workitems.status === 500) return null;
     let headers = workitems.headers;
     let authRequiredHeader = headers.get('X-com-ibm-team-repository-web-auth-msg');
-    if(authRequiredHeader !== null) {
-        if(store.get("autopopulatedCredentials") === true) {
+    if(authRequiredHeader !== null || workitems.status !== 200) {
+        if(store.get("config.hasSavedPassword") === true) {
             if(!await loginWithSavedCredentials()) {
                 //can't login
                 _win.loadFile("login.html");
             } else {
                 return getData(url);
             }
+        } else {
+            _win.loadFile("login.html");
         }
     }
     return await parser.parse(await workitems.text());

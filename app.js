@@ -1,49 +1,90 @@
 let { ipcRenderer } = require("electron")
 let { XMLParser } =  require( 'fast-xml-parser');
-const moment = require("moment-timezone");
-require( 'jquery' );
-require( 'datatables.net-dt' );
+const moment = require("moment");
+const diffMatchPatch = require('diff-match-patch');
+const _ = require("underscore")
 
-let projectArea = document.querySelector("#project-area");
-let date = document.querySelector("#date");
-let teamAreaSelectorButton = document.querySelector("#team-area-selector-button");
-let workitemList = document.querySelector("#workitem-list tbody");
+let projectArea = $("#project-area");
+let date = $("#date");
+let filterBy = $('#filter-by');
+let filterType = $('#filter-type');
 
+let DATE_FORMAT = 'yyyy-MM-DD HH:mm:ss';
+const dmp = new diffMatchPatch();
+
+function validateEmpty(input) {
+    return (!Array.isArray(input) && input) || (Array.isArray(input) && input.length !== 0);
+}
+
+async function setDefaultValues() {
+    await ipcRenderer.invoke("getDefaultValues").then(resp => {
+        projectArea.html(resp.projectAreas.map(pa => `<option value="${pa}">${pa}</option>`).join('\n'));
+
+        if(!validateEmpty(resp.history.lastProjectArea)) {
+            projectArea.prop("selectedIndex", 0);
+        } else {
+            projectArea.val(resp.history.lastProjectArea)
+        }
+        if(!validateEmpty(resp.history.lastDate)) {
+            date.val(moment(new Date()).format('YYYY-MM-DD'))
+        } else {
+            date.val(resp.history.lastDate)
+
+        }
+        if(!validateEmpty(resp.history.lastFilterBy)) {
+            filterBy.prop("selectedIndex", 0);
+        } else {
+            filterBy.val(resp.history.lastFilterBy)
+        }
+        if(!validateEmpty(resp.history.lastFilterType)) {
+            filterType.prop("selectedIndex", 0);
+        } else {
+            filterType.val(resp.history.lastFilterType)
+        }
+
+    });
+}
 
 (async () => {
-    await ipcRenderer.invoke("getDefaultValues").then(resp => {
-        projectArea.value = resp.projectArea;
-        date.value = resp.date;
-    });
+    await setDefaultValues();
+    ipcRenderer.on("changedConfig", (event, config) => {
+        setDefaultValues();
+    })
+
+    let firstLoad = true;
 
     let table = $('#workitem-list').DataTable({
-        processing: true,
-        scrollX: true,
         scrollY: true,
-        scrollCollapse: true,
+        scrollX: true,
+        processing: true,
         language: {
             processing: '<i class="fa fa-spinner fa-spin fa-3x fa-fw"></i>Processing...',
         },
         ajax: (d, cb) => {
-            ipcRenderer.invoke("loadWorkItems", projectArea.value, date.value).then(value => {
+            if(firstLoad) {
+                firstLoad = false;
+                cb({'data': []});
+                return;
+            }
+            ipcRenderer.invoke("loadWorkItems", projectArea.val(), date.val(), filterBy.val(), filterType.val()).then(value => {
                 cb({'data': value});
             })
         },
         columns: [
             {   data: 'id',
                 width: 120,
-                className: 'dt-control',
-                orderable: false
+                className: 'dt-control'
             },
-            { data: 'state.name', width: 120},
-            { data: 'summary', width: 400 },
-            { data: 'owner.name', width: 300},
-            { data: 'modified', width: 300 },
-            { data: 'tags'}
+            { data: 'state.name', width: 120 },
+            { data: 'summary', width: 400, className: 'wrap_everything' },
+            { data: 'owner.name', width: 300, className: 'wrap_everything' },
+            { data: 'modified', width: 300, type: 'date', render: function (data, type, row, meta) {
+                    return moment(data).format(DATE_FORMAT);
+                }},
+            { data: 'tags', className: 'wrap_everything', render: (data, type, row, meta) => {
+                    return data?.split("|").filter(e => e).join("<br>")
+            }}
         ],
-        fixedColumns: {
-            left: 1
-        },
         initComplete: function () {
             // Apply the search
             this.api()
@@ -51,7 +92,7 @@ let workitemList = document.querySelector("#workitem-list tbody");
                 .every(function () {
                     var that = this;
 
-                    $('input', this.footer()).on('keyup change clear', function () {
+                    $('input', that.footer()).on('keyup change clear', function () {
                         if (that.search() !== this.value) {
                             that.search(this.value).draw();
                         }
@@ -60,35 +101,89 @@ let workitemList = document.querySelector("#workitem-list tbody");
         }
     });
 
+    function getPrettyHtmlDiff(text1, text2) {
+        if(!text1) text1 = '';
+        if(!text2) text2 = '';
+        if(text1 === text2) return null;
+        return _.unescape(dmp.diff_prettyHtml(dmp.diff_main(text1, text2)))
+    }
+
     function format(d) {
-        // `d` is the original data object for the row
+        let historyFollowedValuesHeaders = ["Summary", "Owner", "Description", "State"]
+        let historyFollowedValues = ["formattedSummary", "owner.name", "formattedDescription", "state.name"];
+        let fullTextDiffNeeded = ["formattedSummary", "formattedDescription"]
+
         let comments = "";
+        let history = "";
+
+        if(Array.isArray(d.itemHistory)) {
+            history =
+            d?.itemHistory?.map(ih => {
+                let historyString = historyFollowedValues.map(hfv => {
+                    let predecessorText = _.property(hfv.split("."))(d.itemHistory.filter(i => i.stateId === ih.predecessor)[0]);
+                    let currentText = _.property(hfv.split("."))(ih);
+                    if(fullTextDiffNeeded.includes(hfv)) {
+                        return getPrettyHtmlDiff(predecessorText, currentText);
+                    } else {
+                        if(predecessorText === currentText) return null;
+                        if(!predecessorText) predecessorText = null
+                        return `${predecessorText} -> ${currentText}`
+                    }
+                }).map((v, i) => {
+                    if(!v) return null;
+                    return '<ul class="list-group list-group-horizontal-lg">' +
+                        '<li class="col-2 list-group-item fw-bold list-group-item-secondary" style="min-width: 160px">' +
+                        historyFollowedValuesHeaders[i] +
+                        '</li>' +
+                        '<li class="col-10 list-group-item flex-fill">' +
+                        v +
+                        '</li>' +
+                        '</ul>'
+                }).filter(e => e).join('');
+
+                if(historyString === '') return null;
+                return '<ul class="list-group list-group-horizontal-lg">' +
+                    '<li class="col-2 list-group-item fw-bold list-group-item-secondary" style="min-width: 160px">' +
+                    moment(ih.modified).format(DATE_FORMAT) +
+                    '</li>' +
+                    '<li class="col-10 list-group-item flex-fill">' +
+                    historyString +
+                '</li>' +
+                '</ul>'
+            }).filter(e => e).join('')
+        }
+
         if(d.commentCount === 1) {
-            comments = '<div>' + d?.comments?.creator.name + " == " + d?.comments?.creationDate + " -> " + d?.comments?.content + '</div>';
+            comments = '<ul class="list-group list-group-horizontal-lg">' +
+                '<li class="col-2 list-group-item fw-bold list-group-item-secondary" style="min-width: 160px">' +
+                d?.comments?.creator.name +
+                '</li>' +
+                '<li class="col-2 list-group-item">' +
+                moment(d?.comments?.creationDate).format(DATE_FORMAT) +
+                '</li>' +
+                '<li class="list-group-item flex-fill col-8">' +
+                d?.comments?.formattedContent +
+                '</li>' +
+                '</ul>'
         } else if (d.commentCount > 1) {
             comments = d?.comments?.sort((a,b) => Date.parse(b.creationDate)-Date.parse(a.creationDate))?.map(comment => {
-                return '<div>' + comment.creator.name + " == " + comment.creationDate + " -> " + comment.content + '</div>';
+                return '<ul class="list-group list-group-horizontal-lg">' +
+                '<li class="col-2 list-group-item fw-bold list-group-item-secondary" style="min-width: 160px">' +
+                comment?.creator.name +
+                '</li>' +
+                '<li class="col-2 list-group-item" style="min-width: 120px">' +
+                moment(comment?.creationDate).format(DATE_FORMAT) +
+                '</li>' +
+                '<li class="list-group-item flex-fill col-8">' +
+                comment?.formattedContent +
+                '</li>' +
+                '</ul>'
             })?.join('');
         }
+        let listGroupHeaders = ["Id", "Summary", "Description", "Comments", "History"];
+        let listGroup = [d.id, d.summary, d.formattedDescription, comments, history].map((item, i) => '<ul class="list-group list-group-horizontal-lg"><li class="list-group-item list-group-item-secondary fw-bold col-2">' + listGroupHeaders[i] + '</li><li class="list-group-item col-10">' + item + '</li></ul>').join('\n')
         return (
-            '<table cellpadding="5" cellspacing="0" border="0" style="padding-left:50px;">' +
-            '<tr>' +
-            '<td>Full name:</td>' +
-            '<td>' +
-            d.id +
-            '</td>' +
-            '</tr>' +
-            '<tr>' +
-            '<td>Extension number:</td>' +
-            '<td>' +
-            comments +
-            '</td>' +
-            '</tr>' +
-            '<tr>' +
-            '<td>Extra info:</td>' +
-            '<td>And any further details here (images etc)...</td>' +
-            '</tr>' +
-            '</table>'
+            listGroup
         );
     }
 
@@ -111,7 +206,7 @@ let workitemList = document.querySelector("#workitem-list tbody");
 })();
 
 
-$('#workitem-list tfoot th').each(function () {
+$('tfoot th').each(function () {
     var title = $(this).text();
     $(this).html('<input type="text" placeholder="Search ' + title + '" />');
 });
