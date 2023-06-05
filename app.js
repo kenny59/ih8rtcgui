@@ -18,7 +18,7 @@ let openWorkitems = new Set([]);
 function addToOpenWorkItems(item) {
     openWorkitems.add(item);
     let teamAreaButton = $('#team-area-selector-button');
-    let refreshIntervalSelector = $('#refresh-interval-wrapper');
+    let refreshIntervalSelector = $('#refresh-interval');
     teamAreaButton.prop('disabled', true);
     refreshIntervalSelector.prop('disabled', true);
 }
@@ -26,7 +26,7 @@ function deleteFromOpenWorkItems(item) {
     openWorkitems.delete(item);
     if(openWorkitems.size === 0) {
         let teamAreaButton = $('#team-area-selector-button');
-        let refreshIntervalSelector = $('#refresh-interval-wrapper');
+        let refreshIntervalSelector = $('#refresh-interval');
         teamAreaButton.prop('disabled', false);
         refreshIntervalSelector.prop('disabled', false);
     }
