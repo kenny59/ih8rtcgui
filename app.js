@@ -57,6 +57,7 @@ async function setDefaultValues() {
         scrollY: true,
         scrollX: true,
         processing: true,
+        stateSave: true,
         language: {
             processing: '<i class="fa fa-spinner fa-spin fa-3x fa-fw"></i>Processing...',
         },
@@ -108,38 +109,71 @@ async function setDefaultValues() {
         return _.unescape(dmp.diff_prettyHtml(dmp.diff_main(text1, text2)))
     }
 
-    function format(d) {
+    function itemHistoryToString(d, ih, isObject = false) {
         let historyFollowedValuesHeaders = ["Summary", "Owner", "Description", "State"]
         let historyFollowedValues = ["formattedSummary", "owner.name", "formattedDescription", "state.name"];
         let fullTextDiffNeeded = ["formattedSummary", "formattedDescription"]
 
+
+        return historyFollowedValues.map(hfv => {
+            let predecessorText = !isObject ? _.property(hfv.split("."))(d.itemHistory.filter(i => i.stateId === ih.predecessor)[0]) : '';
+            let currentText = _.property(hfv.split("."))(ih);
+            if(fullTextDiffNeeded.includes(hfv)) {
+                return getPrettyHtmlDiff(predecessorText, currentText);
+            } else {
+                if(predecessorText === currentText) return null;
+                if(!predecessorText) predecessorText = 'None'
+                return `${predecessorText} -> ${currentText}`
+            }
+        }).map((v, i) => {
+            if(!v) return null;
+            return '<ul class="list-group list-group-horizontal-lg">' +
+                '<li class="col-2 list-group-item fw-bold list-group-item-secondary" style="min-width: 160px">' +
+                historyFollowedValuesHeaders[i] +
+                '</li>' +
+                '<li class="col-10 list-group-item flex-fill">' +
+                v +
+                '</li>' +
+                '</ul>'
+        }).filter(e => e).join('');
+    }
+
+    function format(d) {
+
         let comments = "";
         let history = "";
+        let attachments = "";
+
+        if(Array.isArray(d?.auditableLinks)) {
+            attachments = d?.auditableLinks.map(al => {
+                if(!al.targetRef?.referencedItem?.['@_href']) return null;
+                return '<ul class="list-group list-group-horizontal-lg">' +
+                '<li class="col-2 list-group-item fw-bold list-group-item-secondary" style="min-width: 160px">' +
+                `${moment(al?.modified).format(DATE_FORMAT)}` +
+                '</li>' +
+                '<li class="col-10 list-group-item flex-fill">' +
+                `<a href="${al.targetRef?.referencedItem?.['@_href']}">${al.targetRef?.comment}</a>` +
+                '</li>' +
+                '</ul>'
+            }).filter(e => e).join('')
+        } else if (d?.auditableLinks) {
+            let al = d?.auditableLinks;
+            attachments = '<ul class="list-group list-group-horizontal-lg">' +
+                '<li class="col-2 list-group-item fw-bold list-group-item-secondary" style="min-width: 160px">' +
+                `${moment(al?.modified).format(DATE_FORMAT)}` +
+                '</li>' +
+                '<li class="col-10 list-group-item flex-fill">' +
+                `<a href="${al.targetRef?.referencedItem?.['@_href']}">${al.targetRef?.comment}</a>` +
+                '</li>' +
+                '</ul>';
+            if(!al.targetRef?.referencedItem?.['@_href']) attachments = '';
+
+        }
 
         if(Array.isArray(d.itemHistory)) {
             history =
             d?.itemHistory?.map(ih => {
-                let historyString = historyFollowedValues.map(hfv => {
-                    let predecessorText = _.property(hfv.split("."))(d.itemHistory.filter(i => i.stateId === ih.predecessor)[0]);
-                    let currentText = _.property(hfv.split("."))(ih);
-                    if(fullTextDiffNeeded.includes(hfv)) {
-                        return getPrettyHtmlDiff(predecessorText, currentText);
-                    } else {
-                        if(predecessorText === currentText) return null;
-                        if(!predecessorText) predecessorText = null
-                        return `${predecessorText} -> ${currentText}`
-                    }
-                }).map((v, i) => {
-                    if(!v) return null;
-                    return '<ul class="list-group list-group-horizontal-lg">' +
-                        '<li class="col-2 list-group-item fw-bold list-group-item-secondary" style="min-width: 160px">' +
-                        historyFollowedValuesHeaders[i] +
-                        '</li>' +
-                        '<li class="col-10 list-group-item flex-fill">' +
-                        v +
-                        '</li>' +
-                        '</ul>'
-                }).filter(e => e).join('');
+                let historyString = itemHistoryToString(d, ih)
 
                 if(historyString === '') return null;
                 return '<ul class="list-group list-group-horizontal-lg">' +
@@ -151,6 +185,20 @@ async function setDefaultValues() {
                 '</li>' +
                 '</ul>'
             }).filter(e => e).join('')
+        } else if (d?.itemHistory) {
+            let ih = d?.itemHistory;
+
+            let historyString = itemHistoryToString(d, ih, true)
+
+            if(historyString === '') return null;
+            history = '<ul class="list-group list-group-horizontal-lg">' +
+                    '<li class="col-2 list-group-item fw-bold list-group-item-secondary" style="min-width: 160px">' +
+                    moment(ih.modified).format(DATE_FORMAT) +
+                    '</li>' +
+                    '<li class="col-10 list-group-item flex-fill">' +
+                    historyString +
+                    '</li>' +
+                    '</ul>'
         }
 
         if(d.commentCount === 1) {
@@ -180,8 +228,8 @@ async function setDefaultValues() {
                 '</ul>'
             })?.join('');
         }
-        let listGroupHeaders = ["Id", "Summary", "Description", "Comments", "History"];
-        let listGroup = [d.id, d.summary, d.formattedDescription, comments, history].map((item, i) => '<ul class="list-group list-group-horizontal-lg"><li class="list-group-item list-group-item-secondary fw-bold col-2">' + listGroupHeaders[i] + '</li><li class="list-group-item col-10">' + item + '</li></ul>').join('\n')
+        let listGroupHeaders = ["Id", "Summary", "Description", "Attachments", "Comments", "History"];
+        let listGroup = [d.id, d.summary, d.formattedDescription, attachments, comments, history].map((item, i) => '<ul class="list-group list-group-horizontal-lg"><li class="list-group-item list-group-item-secondary fw-bold col-2">' + listGroupHeaders[i] + '</li><li class="list-group-item col-10">' + item + '</li></ul>').join('\n')
         return (
             listGroup
         );

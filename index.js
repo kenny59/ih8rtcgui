@@ -5,7 +5,7 @@ let { ipcMain } = require("electron")
 const {XMLParser} = require("fast-xml-parser");
 const https = require('https');
 const fetch = require('node-fetch');
-const parser = new XMLParser();
+const parser = new XMLParser({ignoreAttributes : false});
 const moment = require('moment-timezone')
 const sqlite3 = require('sqlite3');
 const Store = require('electron-store');
@@ -19,7 +19,7 @@ const args = process.argv;
 let BASE_URL = args[2] ? args[2] : "https://jazz.net/sandbox01-ccm";
 let teamAreaUrl = `${BASE_URL}/rpt/repository/foundation?fields=projectArea/projectArea/name`
 
-
+//TODO: datatables save state
 
 let agent = new https.Agent({
     rejectUnauthorized: false
@@ -91,6 +91,24 @@ function createWindow () {
                                 }
                             })
                         }
+                    }, {
+                        label: "Logout",
+                        click: () => {
+                            let text = "You are about to logout.\nAre you sure?";
+                            let options  = {
+                                buttons: ["Yes","No", "Cancel"],
+                                message: text
+                            }
+                            dialog.showMessageBox(options).then((response, checkboxChecked) => {
+                                if (response.response === 0) {
+                                    store.delete("user");
+                                    store.delete("pass");
+                                    store.set("config.hasSavedPassword", false);
+                                    store.set("config.useSavedPassword", false);
+                                    _win.loadFile("login.html");
+                                }
+                            })
+                        }
                     }
                 ]
     }])
@@ -117,6 +135,11 @@ function createWindow () {
         }
     })
 
+    win.webContents.on('will-navigate', (event, url) => {
+        event.preventDefault();
+        require("electron").shell.openExternal(url);
+    });
+
     let cookies = win.webContents.session.cookies;
     cookies.on('changed', function(event, cookie, cause, removed) {
 
@@ -133,6 +156,7 @@ function createWindow () {
     win.loadFile("login.html");
     _win = win;
     //win.loadURL(BASE_URL);
+
 
 }
 
@@ -274,7 +298,7 @@ ipcMain.handle("login", async (event, username, password, saveCredentials, useSa
 });
 
 ipcMain.handle("loadWorkItemData", async (event, rtcNo) => {
-    let url = `${BASE_URL}/rpt/repository/workitem?fields=workitem/workItem[id=${rtcNo}]/(*|allExtensions/displayValue|comments/creator/name|comments/formattedContent|comments/creationDate|itemHistory/modifiedBy/name|itemHistory/*|itemHistory/owner/name|itemHistory/state/name)`;
+    let url = `${BASE_URL}/rpt/repository/workitem?fields=workitem/workItem[id=${rtcNo}]/(*|comments/creator/name|comments/formattedContent|comments/creationDate|itemHistory/modifiedBy/name|itemHistory/*|itemHistory/owner/name|itemHistory/state/name|auditableLinks/targetRef/referencedItem/href|auditableLinks/targetRef/comment|auditableLinks/modified)`;
     return await getData(url);
 })
 
