@@ -12,6 +12,8 @@ let filterType = $('#filter-type');
 let DATE_FORMAT = 'yyyy-MM-DD HH:mm:ss';
 const dmp = new diffMatchPatch();
 
+let openWorkitems = new Set([]);
+
 function validateEmpty(input) {
     return (!Array.isArray(input) && input) || (Array.isArray(input) && input.length !== 0);
 }
@@ -69,6 +71,7 @@ async function setDefaultValues() {
             }
             ipcRenderer.invoke("loadWorkItems", projectArea.val(), date.val(), filterBy.val(), filterType.val()).then(value => {
                 cb({'data': value});
+                $('#lastUpdatedAt').html(moment(new Date()).format(DATE_FORMAT))
             })
         },
         columns: [
@@ -101,6 +104,7 @@ async function setDefaultValues() {
                 });
         }
     });
+    table.search('').columns().search('').draw();
 
     function getPrettyHtmlDiff(text1, text2) {
         if(!text1) text1 = '';
@@ -244,12 +248,15 @@ async function setDefaultValues() {
             // This row is already open - close it
             row.child.hide();
             tr.removeClass('shown');
+            openWorkitems.delete(row.data().id)
         } else {
             // Open this row
             let data = await ipcRenderer.invoke("loadWorkItemData", row.data().id);
 
             row.child(format(data?.['workitem']?.['workItem'])).show();
             tr.addClass('shown');
+
+            openWorkitems.add(row.data().id);
         }
     });
 })();
@@ -261,6 +268,7 @@ $('tfoot th').each(function () {
 });
 
 function reloadDataTable() {
+    if(openWorkitems.size > 0) return;
     $('#workitem-list').DataTable().ajax.reload();
 }
 

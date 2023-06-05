@@ -7,7 +7,6 @@ const https = require('https');
 const fetch = require('node-fetch');
 const parser = new XMLParser({ignoreAttributes : false});
 const moment = require('moment-timezone')
-const sqlite3 = require('sqlite3');
 const Store = require('electron-store');
 
 
@@ -15,8 +14,6 @@ let tokensNeeded = ['LtpaToken2', 'JSESSIONID'];
 let cookiesList = [];
 
 const args = process.argv;
-
-//TODO: url next to id
 
 let agent = new https.Agent({
     rejectUnauthorized: false
