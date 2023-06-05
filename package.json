@@ -17,13 +17,13 @@
     "electron-store": "^8.1.0",
     "fast-xml-parser": "^4.2.2",
     "jquery": "^3.7.0",
+    "lodash": "^4.17.21",
     "moment": "^2.29.4",
     "moment-timezone": "^0.5.43",
-    "node-fetch": "^2.6.1",
-    "underscore": "^1.13.6"
+    "node-fetch": "^2.6.1"
   },
   "devDependencies": {
-    "electron-builder": "^23.6.0",
-    "electron": "^24.3.1"
+    "electron": "^24.3.1",
+    "electron-builder": "^23.6.0"
   }
 }

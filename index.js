@@ -9,7 +9,6 @@ const parser = new XMLParser({ignoreAttributes : false});
 const moment = require('moment-timezone')
 const Store = require('electron-store');
 
-
 let tokensNeeded = ['LtpaToken2', 'JSESSIONID'];
 let cookiesList = [];
 
@@ -18,6 +17,8 @@ const args = process.argv;
 let agent = new https.Agent({
     rejectUnauthorized: false
 });
+
+//TODO titles
 
 require('electron-debug')({ showDevTools: false });
 
@@ -58,6 +59,7 @@ function createConfigWindow() {
         }
     });
     configWindow.loadFile("./config/config.html");
+    configWindow.setTitle("Configuration")
 }
 
 function createWindow () {
@@ -100,6 +102,7 @@ function createWindow () {
                                     store.set("config.hasSavedPassword", false);
                                     store.set("config.useSavedPassword", false);
                                     _win.loadFile("login.html");
+                                    _win.setTitle("Login")
                                 }
                             })
                         }
@@ -143,11 +146,13 @@ function createWindow () {
         if(cookiesList.length === tokensNeeded.length) {
             //win.setSize(200, 400);
             win.loadFile("index.html");
+            win.setTitle("ih8rtcgui tool")
         }
     });
 
 
     win.loadFile("login.html");
+    win.setTitle("Login")
     _win = win;
 
 
@@ -190,7 +195,7 @@ ipcMain.handle("loadWorkItems", async (event, projectArea, date, filterBy, filte
     //filters.push(tagFilters);
     let size = 5;
     let pos = 0;
-    let workItemsUrl = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[${filters.join(" and ")}]/(id|summary|state/name|modified|owner/name|tags)`
+    let workItemsUrl = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[${filters.join(" and ")}]/(id|summary|state/name|modified|owner/name|tags|subscriptions/name)`
     allDataList = [];
     let text = await recursivelyCheckAllRemainingData(workItemsUrl);
     return allDataList;
@@ -281,12 +286,15 @@ async function loginProcess(username, password, saveCredentials, useSavedCredent
 
 ipcMain.handle("login", async (event, username, password, saveCredentials, useSavedCredentials) => {
     let loginResponse = await loginProcess(username, password, saveCredentials, useSavedCredentials);
-    if(loginResponse.success) _win.loadFile("index.html");
+    if(loginResponse.success) {
+        _win.loadFile("index.html");
+        _win.setTitle("ih8rtcgui tool")
+    }
     return loginResponse;
 });
 
 ipcMain.handle("loadWorkItemData", async (event, rtcNo) => {
-    let url = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[id=${rtcNo}]/(*|comments/creator/name|comments/formattedContent|comments/creationDate|itemHistory/modifiedBy/name|itemHistory/*|itemHistory/owner/name|itemHistory/state/name|auditableLinks/targetRef/referencedItem/href|auditableLinks/targetRef/comment|auditableLinks/modified)`;
+    let url = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[id=${rtcNo}]/(*|creator/name|comments/creator/name|comments/formattedContent|comments/creationDate|itemHistory/modifiedBy/name|itemHistory/*|itemHistory/owner/name|itemHistory/state/name|itemHistory/subscriptions/name|auditableLinks/targetRef/referencedItem/href|auditableLinks/targetRef/comment|auditableLinks/modified)`;
     let dataPreprocessed = await getData(url);
     if(dataPreprocessed?.['workitem']?.['workItem']) {
         let wi = dataPreprocessed['workitem']['workItem'];
@@ -330,11 +338,13 @@ async function getData(url) {
             if(!await loginWithSavedCredentials()) {
                 //can't login
                 _win.loadFile("login.html");
+                _win.setTitle("Login")
             } else {
                 return getData(url);
             }
         } else {
             _win.loadFile("login.html");
+            _win.setTitle("Login")
         }
     }
     return await parser.parse(await workitems.text());

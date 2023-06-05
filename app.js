@@ -2,7 +2,8 @@ let { ipcRenderer } = require("electron")
 let { XMLParser } =  require( 'fast-xml-parser');
 const moment = require("moment");
 const diffMatchPatch = require('diff-match-patch');
-const _ = require("underscore")
+const _ = require("lodash")
+const {diff_match_patch} = require("diff-match-patch");
 
 let projectArea = $("#project-area");
 let date = $("#date");
@@ -13,6 +14,23 @@ let DATE_FORMAT = 'yyyy-MM-DD HH:mm:ss';
 const dmp = new diffMatchPatch();
 
 let openWorkitems = new Set([]);
+
+function addToOpenWorkItems(item) {
+    openWorkitems.add(item);
+    let teamAreaButton = $('#team-area-selector-button');
+    let refreshIntervalSelector = $('#refresh-interval-wrapper');
+    teamAreaButton.prop('disabled', true);
+    refreshIntervalSelector.prop('disabled', true);
+}
+function deleteFromOpenWorkItems(item) {
+    openWorkitems.delete(item);
+    if(openWorkitems.size === 0) {
+        let teamAreaButton = $('#team-area-selector-button');
+        let refreshIntervalSelector = $('#refresh-interval-wrapper');
+        teamAreaButton.prop('disabled', false);
+        refreshIntervalSelector.prop('disabled', false);
+    }
+}
 
 function validateEmpty(input) {
     return (!Array.isArray(input) && input) || (Array.isArray(input) && input.length !== 0);
@@ -85,6 +103,9 @@ async function setDefaultValues() {
             { data: 'modified', width: 300, type: 'date', render: function (data, type, row, meta) {
                     return moment(data).format(DATE_FORMAT);
                 }},
+            { data: 'subscriptions', width: 300, className: 'wrap_everything', render: (data, type, row, meta) => {
+                    return Array.isArray(data) ? data?.map(d => d.name).join("<br>") : data?.name
+                }},
             { data: 'tags', className: 'wrap_everything', render: (data, type, row, meta) => {
                     return data?.split("|").filter(e => e).join("<br>")
             }}
@@ -106,24 +127,46 @@ async function setDefaultValues() {
     });
     table.search('').columns().search('').draw();
 
+    $('#close-all-details').click(() => {
+
+        $('tr').each(tr => {
+            var row = table.row(tr);
+            if (row.child.isShown()) {
+                row.child.hide();
+                $(this).removeClass('shown');
+            }
+        })
+        openWorkitems.forEach(wi => deleteFromOpenWorkItems(wi))
+    })
+
     function getPrettyHtmlDiff(text1, text2) {
         if(!text1) text1 = '';
         if(!text2) text2 = '';
-        if(text1 === text2) return null;
-        return _.unescape(dmp.diff_prettyHtml(dmp.diff_main(text1, text2)))
+        if(text1 === text2) return null
+        let diff = dmp.diff_main(text1, text2);
+        dmp.diff_cleanupSemantic(diff);
+        return _.unescape(dmp.diff_prettyHtml(diff))
     }
 
     function itemHistoryToString(d, ih, isObject = false) {
-        let historyFollowedValuesHeaders = ["Summary", "Owner", "Description", "State"]
-        let historyFollowedValues = ["formattedSummary", "owner.name", "formattedDescription", "state.name"];
+        let historyFollowedValuesHeaders = ["Summary", "Owner", "Description", "State", "Subscribers"]
+        let historyFollowedValues = ["formattedSummary", "owner.name", "formattedDescription", "state.name", "subscriptions"];
         let fullTextDiffNeeded = ["formattedSummary", "formattedDescription"]
-
+        let arrayDiffCheckNeeded = ["subscriptions"];
 
         return historyFollowedValues.map(hfv => {
             let predecessorText = !isObject ? _.property(hfv.split("."))(d.itemHistory.filter(i => i.stateId === ih.predecessor)[0]) : '';
             let currentText = _.property(hfv.split("."))(ih);
             if(fullTextDiffNeeded.includes(hfv)) {
                 return getPrettyHtmlDiff(predecessorText, currentText);
+            } else if (arrayDiffCheckNeeded.includes(hfv)) {
+                if(!Array.isArray(predecessorText)) predecessorText = Array.of(predecessorText);
+                if(!Array.isArray(currentText)) currentText = Array.of(currentText);
+                let newSubscribers = _.differenceBy(currentText, predecessorText, 'name');;
+                if(newSubscribers.length > 0) {
+                    return `Added ${newSubscribers.map(ns => ns.name).join(', ')}`
+                }
+                return null;
             } else {
                 if(predecessorText === currentText) return null;
                 if(!predecessorText) predecessorText = 'None'
@@ -232,8 +275,8 @@ async function setDefaultValues() {
                 '</ul>'
             })?.join('');
         }
-        let listGroupHeaders = ["Id", "Summary", "Description", "Attachments", "Comments", "History"];
-        let listGroup = [d.id, d.summary, d.formattedDescription, attachments, comments, history].map((item, i) => '<ul class="list-group list-group-horizontal-lg"><li class="list-group-item list-group-item-secondary fw-bold col-2">' + listGroupHeaders[i] + '</li><li class="list-group-item col-10">' + item + '</li></ul>').join('\n')
+        let listGroupHeaders = ["Id", "Creator", "Creation date", "Summary", "Description", "Attachments", "Comments", "History"];
+        let listGroup = [d.id, d.creator?.name, moment(d.creationDate).format(DATE_FORMAT), d.summary, d.formattedDescription, attachments, comments, history].map((item, i) => '<ul class="list-group list-group-horizontal-lg"><li class="list-group-item list-group-item-secondary fw-bold col-2">' + listGroupHeaders[i] + '</li><li class="list-group-item col-10">' + item + '</li></ul>').join('\n')
         return (
             listGroup
         );
@@ -248,7 +291,7 @@ async function setDefaultValues() {
             // This row is already open - close it
             row.child.hide();
             tr.removeClass('shown');
-            openWorkitems.delete(row.data().id)
+            deleteFromOpenWorkItems(row.data().id)
         } else {
             // Open this row
             let data = await ipcRenderer.invoke("loadWorkItemData", row.data().id);
@@ -256,7 +299,7 @@ async function setDefaultValues() {
             row.child(format(data?.['workitem']?.['workItem'])).show();
             tr.addClass('shown');
 
-            openWorkitems.add(row.data().id);
+            addToOpenWorkItems(row.data().id);
         }
     });
 })();
