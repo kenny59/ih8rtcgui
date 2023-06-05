@@ -16,10 +16,7 @@ let cookiesList = [];
 
 const args = process.argv;
 
-let BASE_URL = args[2] ? args[2] : "https://jazz.net/sandbox01-ccm";
-let teamAreaUrl = `${BASE_URL}/rpt/repository/foundation?fields=projectArea/projectArea/name`
-
-//TODO: datatables save state
+//TODO: url next to id
 
 let agent = new https.Agent({
     rejectUnauthorized: false
@@ -155,7 +152,6 @@ function createWindow () {
 
     win.loadFile("login.html");
     _win = win;
-    //win.loadURL(BASE_URL);
 
 
 }
@@ -197,16 +193,11 @@ ipcMain.handle("loadWorkItems", async (event, projectArea, date, filterBy, filte
     //filters.push(tagFilters);
     let size = 5;
     let pos = 0;
-    let workItemsUrl = `${BASE_URL}/rpt/repository/workitem?fields=workitem/workItem[${filters.join(" and ")}]/(id|summary|state/name|modified|owner/name|tags)`
+    let workItemsUrl = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[${filters.join(" and ")}]/(id|summary|state/name|modified|owner/name|tags)`
     allDataList = [];
     let text = await recursivelyCheckAllRemainingData(workItemsUrl);
     return allDataList;
 });
-
-ipcMain.handle("loadTeamAreas", async (event) => {
-    let teamareas = await getData(teamAreaUrl);
-    return teamareas;
-})
 
 /**
  * @returns string[]
@@ -214,8 +205,8 @@ ipcMain.handle("loadTeamAreas", async (event) => {
 async function login(username, password) {
     let cookiesList = [];
     var myHeaders = new Headers();
-    let url = new URL(BASE_URL);
-    myHeaders.append("Referer", `${BASE_URL}/auth/authrequired`);
+    let url = new URL(store.get("config.baseUrl"));
+    myHeaders.append("Referer", `${store.get("config.baseUrl")}/auth/authrequired`);
     myHeaders.append("Host", `${url.host}`);
     myHeaders.append("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
     myHeaders.append("Origin", `${url.protocol}//${url.host}`);
@@ -233,7 +224,7 @@ async function login(username, password) {
         redirect: 'manual'
     };
 
-    let response1 = await fetch(BASE_URL + "/j_security_check", requestOptions);
+    let response1 = await fetch(store.get("config.baseUrl") + "/j_security_check", requestOptions);
     if(!response1.headers.get('set-cookie')) {
         return [];
     }
@@ -244,7 +235,7 @@ async function login(username, password) {
     myHeaders.append("Cookie", cookiesList.join(";"));
 
 
-    let response2 = await fetch(BASE_URL + "/j_security_check", requestOptions);
+    let response2 = await fetch(store.get("config.baseUrl") + "/j_security_check", requestOptions);
     let authreq = response2.headers.get('x-com-ibm-team-repository-web-auth-msg');
     if(authreq !== null || response2.status !== 200) {
         console.log('Unsuccessful auth');
@@ -298,13 +289,17 @@ ipcMain.handle("login", async (event, username, password, saveCredentials, useSa
 });
 
 ipcMain.handle("loadWorkItemData", async (event, rtcNo) => {
-    let url = `${BASE_URL}/rpt/repository/workitem?fields=workitem/workItem[id=${rtcNo}]/(*|comments/creator/name|comments/formattedContent|comments/creationDate|itemHistory/modifiedBy/name|itemHistory/*|itemHistory/owner/name|itemHistory/state/name|auditableLinks/targetRef/referencedItem/href|auditableLinks/targetRef/comment|auditableLinks/modified)`;
-    return await getData(url);
+    let url = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[id=${rtcNo}]/(*|comments/creator/name|comments/formattedContent|comments/creationDate|itemHistory/modifiedBy/name|itemHistory/*|itemHistory/owner/name|itemHistory/state/name|auditableLinks/targetRef/referencedItem/href|auditableLinks/targetRef/comment|auditableLinks/modified)`;
+    let dataPreprocessed = await getData(url);
+    if(dataPreprocessed?.['workitem']?.['workItem']) {
+        let wi = dataPreprocessed['workitem']['workItem'];
+        wi.id = wi.id + ` <a href="${store.get("config.baseUrl")}/web/projects/${store.get("config.history.lastProjectArea")}#action=com.ibm.team.workitem.viewWorkItem&id=${wi.id}"><i class="fa fa-external-link" aria-hidden="true"></i></a>`;
+    }
+    return dataPreprocessed;
 })
 
 ipcMain.handle("saveConfig", (event, baseUrl, projectAreas) => {
     store.set("config.baseUrl", baseUrl);
-    BASE_URL = baseUrl;
     store.set("config.projectAreas", projectAreas.split("\n"))
     _win.webContents.send("changedConfig", store.get("config"));
     return "Saved config successfully";

@@ -239,7 +239,6 @@ async function setDefaultValues() {
     $('#workitem-list tbody').on('click', 'td.dt-control', async function () {
         var tr = $(this).closest('tr');
         var row = table.row(tr);
-        let data = await ipcRenderer.invoke("loadWorkItemData", row.data().id);
 
         if (row.child.isShown()) {
             // This row is already open - close it
@@ -247,6 +246,8 @@ async function setDefaultValues() {
             tr.removeClass('shown');
         } else {
             // Open this row
+            let data = await ipcRenderer.invoke("loadWorkItemData", row.data().id);
+
             row.child(format(data?.['workitem']?.['workItem'])).show();
             tr.addClass('shown');
         }
@@ -278,42 +279,3 @@ $('#refresh-interval').change((event) => {
         clearInterval(id);
     }
 })
-
-//teamAreaSelectorButton.addEventListener('click', () => {
-//    ipcRenderer.invoke("loadWorkItems", tagSearch.value, date.value).then(async value => {
-//        workitemList.innerHTML = "";
-//        let watched = await ipcRenderer.invoke("getWatched");
-//        value.sort(function (a,b) {
-//            if(watched.includes(String(b['id']))) return Number.MAX_VALUE;
-//            return moment(b['modified']) - moment(a['modified']);
-//        }).forEach(wi => {
-//            let tr = document.createElement("tr");
-//            let td = document.createElement("td");
-//            let a = document.createElement("a");
-//            a.text = wi['id'];
-//            a.addEventListener('click', async () => {
-//                let added = await ipcRenderer.invoke('addToWatchedWorkItems', wi['id']);
-//                if(added) {
-//                    tr.classList.add('bg-primary', 'text-white');
-//                } else {
-//                    tr.classList.remove('bg-primary', 'text-white');
-//                }
-//            })
-//            td.appendChild(a);
-//            tr.innerHTML = `<td>${wi['summary']}</td><td>${wi['state']['name']}</td><td>${wi['modified']}</td>`;
-//            tr.prepend(td);
-//            if(watched.includes(String(wi['id']))) tr.classList.add('bg-primary', 'text-white');
-//            workitemList.appendChild(tr);
-//        })
-//    });
-//})
-
-//ipcRenderer.invoke("loadTeamAreas").then(value => {
-//
-//    value['foundation']['projectArea'].forEach(projectArea => {
-//        var option = document.createElement("option");
-//        option.text = projectArea.name;
-//        option.value = projectArea.name;
-//        teamAreaSelector.appendChild(option);
-//    })
-//})
