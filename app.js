@@ -188,9 +188,9 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
             } else if (arrayDiffCheckNeeded.includes(hfv)) {
                 if(!Array.isArray(predecessorText)) predecessorText = Array.of(predecessorText);
                 if(!Array.isArray(currentText)) currentText = Array.of(currentText);
-                let newSubscribers = _.differenceBy(currentText, predecessorText, 'name');;
+                let newSubscribers = _.differenceBy(currentText, predecessorText, 'name').filter(e => e);
                 if(newSubscribers.length > 0) {
-                    return `Added ${newSubscribers.map(ns => ns.name).join(', ')}`
+                    return `Added ${newSubscribers.map(ns => ns?.name).join(', ')}`
                 }
                 return null;
             } else {
