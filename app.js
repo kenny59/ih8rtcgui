@@ -173,9 +173,8 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
     table.search('').columns().search('').draw();
 
     $('#close-all-details').click(() => {
-
-        $('tr').each(tr => {
-            var row = table.row(tr);
+        table.rows({filter:'applied'}).every(rowId => {
+            let row = table.row(rowId);
             if (row.child.isShown()) {
                 row.child.hide();
                 $(this).removeClass('shown');
