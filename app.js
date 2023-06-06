@@ -3,7 +3,7 @@ let { XMLParser } =  require( 'fast-xml-parser');
 const moment = require("moment");
 const diffMatchPatch = require('diff-match-patch');
 const _ = require("lodash")
-const {diff_match_patch} = require("diff-match-patch");
+const DOMPurify = require('dompurify');
 
 let projectArea = $("#project-area");
 let date = $("#date");
@@ -121,7 +121,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
         columns: [
             {   data: 'id',
                 width: 120,
-                className: 'dt-control'
+                className: 'dt-control fs-5'
             },
             { data: 'state.name', width: 120 },
             { data: 'summary', width: 400, className: 'wrap_everything' },
@@ -151,6 +151,25 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                 });
         }
     });
+    $(function() {
+        $.contextMenu({
+            selector: 'tr.odd > td,tr.even > td',
+            trigger: 'right',
+            callback: function (key, options) {
+                var row = table.cell(options.$trigger)
+                switch (key) {
+                    case 'copy' :
+                        navigator.clipboard.writeText(row.render('display'))
+                        break;
+                    default :
+                        break
+                }
+            },
+            items: {
+                "copy": {name: "Copy", icon: "copy"},
+            }
+        })
+    });
     table.search('').columns().search('').draw();
 
     $('#close-all-details').click(() => {
@@ -169,9 +188,9 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
         if(!text1) text1 = '';
         if(!text2) text2 = '';
         if(text1 === text2) return null
-        let diff = dmp.diff_main(text1, text2);
+        let diff = dmp.diff_main(text1, text2, false);
         dmp.diff_cleanupSemantic(diff);
-        return _.unescape(dmp.diff_prettyHtml(diff))
+        return DOMPurify.sanitize(_.unescape(dmp.diff_prettyHtml(diff)), { USE_PROFILES: { html: true } });
     }
 
     function itemHistoryToString(d, ih, isObject = false) {
@@ -188,11 +207,17 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
             } else if (arrayDiffCheckNeeded.includes(hfv)) {
                 if(!Array.isArray(predecessorText)) predecessorText = Array.of(predecessorText);
                 if(!Array.isArray(currentText)) currentText = Array.of(currentText);
-                let newSubscribers = _.differenceBy(currentText, predecessorText, 'name').filter(e => e);
+                let newSubscribers, removedSubscribers = [];
+                newSubscribers = _.differenceBy(currentText, predecessorText, 'name').filter(e => e);
+                removedSubscribers = _.differenceBy(predecessorText, currentText, 'name').filter(e => e);
+                let returnText = [];
                 if(newSubscribers.length > 0) {
-                    return `Added ${newSubscribers.map(ns => ns?.name).join(', ')}`
+                    returnText.push(`Added ${newSubscribers.map(ns => ns?.name).join(', ')}`)
                 }
-                return null;
+                if(removedSubscribers.length > 0) {
+                    returnText.push(`Removed ${removedSubscribers.map(ns => ns?.name).join(', ')}`)
+                }
+                return returnText.length > 0 ? returnText : null;
             } else {
                 if(predecessorText === currentText) return null;
                 if(!predecessorText) predecessorText = 'None'
