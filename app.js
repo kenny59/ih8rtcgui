@@ -188,8 +188,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
         if(!text1) text1 = '';
         if(!text2) text2 = '';
         if(text1 === text2) return null
-        let diff = dmp.diff_main(text1, text2, false);
-        dmp.diff_cleanupSemantic(diff);
+        let diff = dmp.diff_main(text1, text2);
         return DOMPurify.sanitize(_.unescape(dmp.diff_prettyHtml(diff)), { USE_PROFILES: { html: true } });
     }
 

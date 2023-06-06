@@ -18,9 +18,6 @@ let agent = new https.Agent({
     rejectUnauthorized: false
 });
 
-//TODO diff ignore html changes?
-//TODO F5 refersh?
-
 //TODO nicetohave: zoom
 //TODO nicetohave: custom icon
 //TODO nicetohave: connection error show error
@@ -51,23 +48,6 @@ if(!store.get("config")) {
 }
 
 let _win;
-
-let ignoredMarks = new RegExp('[ ,\.;:!\'"?-]+$')
-
-function unmarkMinorDiffs(diffs) {
-    let cookedDiffs = []
-    diffs.forEach((op, data) => {
-        if(!ignoredMarks.match(data)) {
-            cookedDiffs.append([op, data])
-        } else {
-            if([0, -1].includes(op)) {
-                cookedDiffs.append([0, data])
-            }
-        }
-    })
-    return cookedDiffs
-}
-
 
 function createConfigWindow() {
     const configWindow = new BrowserWindow({
