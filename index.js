@@ -18,10 +18,12 @@ let agent = new https.Agent({
     rejectUnauthorized: false
 });
 
-//TODO zoom
-//TODO custom icon
-//TODO connection error show error
 //TODO subscribers scroll?
+
+
+//TODO nicetohave: zoom
+//TODO nicetohave: custom icon
+//TODO nicetohave: connection error show error
 
 require('electron-debug')({ showDevTools: false });
 

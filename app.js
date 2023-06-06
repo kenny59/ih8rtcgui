@@ -130,10 +130,10 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                     return moment(data).format(DATE_FORMAT);
                 }},
             { data: 'subscriptions', width: 300, className: 'wrap_everything', render: (data, type, row, meta) => {
-                    return Array.isArray(data) ? data?.map(d => d.name).join("<br>") : data?.name
+                    return Array.isArray(data) ? data?.map(d => d.name).join(", ") : data?.name
                 }},
             { data: 'tags', className: 'wrap_everything', render: (data, type, row, meta) => {
-                    return data?.split("|").filter(e => e).join("<br>")
+                    return data?.split("|").filter(e => e).join(", ")
             }}
         ],
         initComplete: function () {
