@@ -18,8 +18,10 @@ let agent = new https.Agent({
     rejectUnauthorized: false
 });
 
-//TODO sticky header
 //TODO zoom
+//TODO custom icon
+//TODO connection error show error
+//TODO subscribers scroll?
 
 require('electron-debug')({ showDevTools: false });
 

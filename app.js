@@ -65,6 +65,8 @@ async function setDefaultValues() {
     });
 }
 
+let DROPDOWN_COLUMNS = ["State", "Owner"];
+
 (async () => {
     await setDefaultValues();
     ipcRenderer.on("changedConfig", (event, config) => {
@@ -78,6 +80,11 @@ async function setDefaultValues() {
         scrollX: true,
         processing: true,
         stateSave: true,
+        fixedHeader: true,
+        lengthMenu: [
+            [5, 10, 25, 50, 100, -1],
+            [5, 10, 25, 50, 100, 'All'],
+        ],
         language: {
             processing: '<i class="fa fa-spinner fa-spin fa-3x fa-fw"></i>Processing...',
         },
@@ -90,6 +97,25 @@ async function setDefaultValues() {
             ipcRenderer.invoke("loadWorkItems", projectArea.val(), date.val(), filterBy.val(), filterType.val()).then(value => {
                 cb({'data': value});
                 $('#lastUpdatedAt').html(moment(new Date()).format(DATE_FORMAT))
+                table.columns().every((col) => {
+                    let that = table.column(col);
+                    if(!DROPDOWN_COLUMNS.includes(that.header().textContent)) return;
+                    var select = $('<select class="form-select"><option value="">-</option></select>')
+                        .appendTo($(that.footer()).empty())
+                        .on('change', function () {
+                            var val = $.fn.dataTable.util.escapeRegex($(this).val());
+
+                            that.search(val ? '^' + val + '$' : '', true, false).draw();
+                        });
+
+                    that
+                        .data()
+                        .unique()
+                        .sort()
+                        .each(function (d, j) {
+                            select.append('<option value="' + d + '">' + d + '</option>');
+                        });
+                })
             })
         },
         columns: [
@@ -307,7 +333,12 @@ async function setDefaultValues() {
 
 $('tfoot th').each(function () {
     var title = $(this).text();
-    $(this).html('<input type="text" placeholder="Search ' + title + '" />');
+    if(DROPDOWN_COLUMNS.includes(title)) {
+        let placeholderSelect = '<select class="form-select"><option value="">' + title + '</option></select>';
+        $(this).html(placeholderSelect);
+        return;
+    }
+    $(this).html('<input class="form-control" type="text" placeholder="Search ' + title + '" />');
 });
 
 function reloadDataTable() {
