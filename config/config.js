@@ -4,11 +4,17 @@ const $ = require('jquery')
 ipcRenderer.invoke("getDefaultValues").then(resp => {
     $('#base-url').val(resp.baseUrl);
     $('#project-areas').val(resp.projectAreas.join('\n'));
+    let customAttributesString = [];
+    new Map(Object.entries(JSON.parse(resp.customAttributes))).forEach((v,k) => {
+        customAttributesString.push(`${k}=${v}`)
+    })
+    $('#custom-attributes').val(customAttributesString.join('\n'))
 })
 
 function saveConfig() {
     let baseUrl = $('#base-url').val()
     let projectAreas = $('#project-areas').val();
+    let customAttributes = $('#custom-attributes').val();
 
     let projectAreaPredicate = projectAreas.length === 0;
     let baseUrlPredicate = !baseUrl;
@@ -20,7 +26,7 @@ function saveConfig() {
         $('#errors').hide();
     }
 
-    ipcRenderer.invoke("saveConfig", baseUrl, projectAreas).then(resp => {
+    ipcRenderer.invoke("saveConfig", baseUrl, projectAreas, customAttributes).then(resp => {
         $('#config-toast-body').text('Saved successfully');
         new bootstrap.Toast($('.toast')).show();
     })

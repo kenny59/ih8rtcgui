@@ -18,6 +18,9 @@ let agent = new https.Agent({
     rejectUnauthorized: false
 });
 
+//TODO refactor
+//TODO open details in new page?
+
 //TODO nicetohave: zoom
 //TODO nicetohave: custom icon
 //TODO nicetohave: connection error show error
@@ -30,17 +33,22 @@ const store = new Store({
     encryptionKey: 'very_secure_obfuscation_key',
 });
 
+/**
+ *
+ * @type {{baseUrl: string, useSavedPassword: boolean, projectAreas: *[], history: {lastProjectArea: string, lastFilterBy: string, lastFilterType: string, lastDate: string}, hasSavedPassword: boolean, customAttributes: string}}
+ */
 let defaultConfig = {
     history: {
-        lastProjectArea: '',
-        lastDate: '',
-        lastFilterBy: '',
-        lastFilterType: ''
+        /** string */ lastProjectArea: '',
+        /** string */ lastDate: '',
+        /** string */ lastFilterBy: '',
+        /** string */ lastFilterType: ''
     },
-    projectAreas: [],
-    baseUrl: '',
-    hasSavedPassword: false,
-    useSavedPassword: false
+    /** string[] */ projectAreas: [],
+    /** string */customAttributes: '',
+    /** string */ baseUrl: '',
+    /** boolean */ hasSavedPassword: false,
+    /** boolean */ useSavedPassword: false
 }
 
 if(!store.get("config")) {
@@ -268,8 +276,8 @@ async function loginProcess(username, password, saveCredentials, useSavedCredent
         } else {
             return {success: false, message: 'You have no stored password, please enter password.'};
         }
+        store.set("config.useSavedPassword", useSavedCredentials)
     }
-    store.set("config.useSavedPassword", useSavedCredentials)
     let cookiesFromLogin = await login(username, password);
     if(cookiesFromLogin.length >= 2) {
         cookiesList = cookiesFromLogin;
@@ -286,6 +294,11 @@ async function loginProcess(username, password, saveCredentials, useSavedCredent
     }
 }
 
+ipcMain.handle("getContributorName", async (event, itemId) => {
+    let jtsUrl = `${store.get("config.baseUrl").replace("ccm", "jts")}/rpt/repository/foundation?fields=projectArea/contributor[itemId=${itemId}]/name`;
+    let response = await getData(jtsUrl);
+    return response?.['foundation']?.['contributor']?.['name'];
+})
 ipcMain.handle("login", async (event, username, password, saveCredentials, useSavedCredentials) => {
     let loginResponse = await loginProcess(username, password, saveCredentials, useSavedCredentials);
     if(loginResponse.success) {
@@ -296,7 +309,7 @@ ipcMain.handle("login", async (event, username, password, saveCredentials, useSa
 });
 
 ipcMain.handle("loadWorkItemData", async (event, rtcNo) => {
-    let url = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[id=${rtcNo}]/(*|creator/name|comments/creator/name|comments/formattedContent|comments/creationDate|itemHistory/modifiedBy/name|itemHistory/*|itemHistory/owner/name|itemHistory/state/name|itemHistory/subscriptions/name|auditableLinks/targetRef/referencedItem/href|auditableLinks/targetRef/comment|auditableLinks/modified)`;
+    let url = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[id=${rtcNo}]/(*|creator/name|creator/itemType|comments/creator/name|comments/formattedContent|comments/creationDate|itemHistory/modifiedBy/name|itemHistory/*|itemHistory/owner/name|itemHistory/state/name|itemHistory/subscriptions/name|auditableLinks/targetRef/referencedItem/href|auditableLinks/targetRef/comment|auditableLinks/modified|allExtensions/key|allExtensions/displayValue|customAttributes/identifier|customAttributes/itemType|customAttributes/attributeType|allExtensions/itemValue/itemId)`;
     let dataPreprocessed = await getData(url);
     if(dataPreprocessed?.['workitem']?.['workItem']) {
         let wi = dataPreprocessed['workitem']['workItem'];
@@ -305,9 +318,16 @@ ipcMain.handle("loadWorkItemData", async (event, rtcNo) => {
     return dataPreprocessed;
 })
 
-ipcMain.handle("saveConfig", (event, baseUrl, projectAreas) => {
+ipcMain.handle("saveConfig", (event, baseUrl, projectAreas, customAttributes) => {
     store.set("config.baseUrl", baseUrl);
     store.set("config.projectAreas", projectAreas.split("\n"))
+    let customAttributesRows = customAttributes.split("\n");
+    let customAttributesMap = new Map()
+    customAttributesRows.forEach(car => {
+        let keyValues = car.split("=");
+        customAttributesMap.set(keyValues[0], keyValues[1]);
+    });
+    store.set("config.customAttributes", JSON.stringify(Object.fromEntries(customAttributesMap)))
     _win.webContents.send("changedConfig", store.get("config"));
     return "Saved config successfully";
 })

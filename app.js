@@ -32,10 +32,41 @@ function deleteFromOpenWorkItems(item) {
     }
 }
 
+function getArray(object, selector) {
+    return Array.isArray(object[selector]) ? object[selector] : Array.of(object[selector])
+}
+
+async function getValueFromRTCObject(rtcObject, workitemObject) {
+    if(!rtcObject) return null;
+    switch(rtcObject['itemType']) {
+        case "com.ibm.team.workitem.Category":
+        case "com.ibm.team.repository.Contributor":
+            return String(rtcObject['name'])
+        case "com.ibm.team.workitem.Attribute":
+            let allExtensions = getArray(workitemObject, 'allExtensions')
+            allExtensions = allExtensions.filter(ae => {
+                return ae.key === rtcObject['identifier']
+            })
+            if(allExtensions.length > 0) {
+                switch(rtcObject?.['attributeType']) {
+                    case "contributor":
+                        let contributorName = await ipcRenderer.invoke("getContributorName", allExtensions?.[0]?.['itemValue']?.['itemId']);
+                        return String(contributorName);
+                    default:
+                        return String(allExtensions[0]['displayValue'])
+                }
+            }
+            return null;
+        default:
+            return String(rtcObject['displayValue']);
+    }
+}
+
 function validateEmpty(input) {
     return (!Array.isArray(input) && input) || (Array.isArray(input) && input.length !== 0);
 }
 
+let customAttributes = new Map();
 async function setDefaultValues() {
     await ipcRenderer.invoke("getDefaultValues").then(resp => {
         projectArea.html(resp.projectAreas.map(pa => `<option value="${pa}">${pa}</option>`).join('\n'));
@@ -61,7 +92,7 @@ async function setDefaultValues() {
         } else {
             filterType.val(resp.history.lastFilterType)
         }
-
+        customAttributes = new Map(Object.entries(JSON.parse(resp.customAttributes)));
     });
 }
 
@@ -234,7 +265,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
         }).filter(e => e).join('');
     }
 
-    function format(d) {
+    async function format(d) {
 
         let comments = "";
         let history = "";
@@ -263,7 +294,6 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                 '</li>' +
                 '</ul>';
             if(!al.targetRef?.referencedItem?.['@_href']) attachments = '';
-
         }
 
         if(Array.isArray(d.itemHistory)) {
@@ -325,9 +355,18 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
             })?.join('');
         }
         let listGroupHeaders = ["Id", "Creator", "Creation date", "Summary", "Description", "Attachments", "Comments", "History"];
-        let listGroup = [d.id, d.creator?.name, moment(d.creationDate).format(DATE_FORMAT), d.summary, d.formattedDescription, attachments, comments, history].map((item, i) => '<ul class="list-group list-group-horizontal-lg"><li class="list-group-item list-group-item-secondary fw-bold col-2">' + listGroupHeaders[i] + '</li><li class="list-group-item col-10">' + item + '</li></ul>').join('\n')
+        let listGroup = [d.id, await getValueFromRTCObject(d.creator, d), moment(d.creationDate).format(DATE_FORMAT), d.summary, d.formattedDescription, attachments, comments, history];
+        let spliceAtIndex = 4;
+        for (let [k, v] of customAttributes) {
+            let val = await getValueFromRTCObject(getArray(d, 'customAttributes').filter(ca => ca.identifier === k)?.[0], d)
+            if(val !== undefined && val !== null) {
+                listGroupHeaders.splice(spliceAtIndex, 0, v);
+                listGroup.splice(spliceAtIndex, 0, val);
+            }
+        }
+        let listGroupString = listGroup.map((item, i) => '<ul class="list-group list-group-horizontal-lg"><li class="list-group-item list-group-item-secondary fw-bold col-2">' + listGroupHeaders[i] + '</li><li class="list-group-item col-10">' + item + '</li></ul>').join('\n')
         return (
-            listGroup
+            listGroupString
         );
     }
 
@@ -342,11 +381,13 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
             tr.removeClass('shown');
             deleteFromOpenWorkItems(row.data().id)
         } else {
+            $(this).addClass('spinner-grow');
             // Open this row
             let data = await ipcRenderer.invoke("loadWorkItemData", row.data().id);
 
-            row.child(format(data?.['workitem']?.['workItem'])).show();
+            row.child(await format(data?.['workitem']?.['workItem'])).show();
             tr.addClass('shown');
+            $(this).removeClass('spinner-grow');
 
             addToOpenWorkItems(row.data().id);
         }
