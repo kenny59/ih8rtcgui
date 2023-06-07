@@ -139,12 +139,24 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                             that.search(val ? '^' + val + '$' : '', true, false).draw();
                         });
 
+                    let selected = table.column(that).search();
+                    if(selected) {
+                        let contains = false;
+                        that.data().unique().each((d,j) => {if(`^${d}$` === selected) contains = true});
+                        if(!contains) {
+                            that.search('', true, false).draw();
+                            select.val('');
+                        }
+                    }
+                    //TODO not wqorking anymore
                     that
                         .data()
                         .unique()
                         .sort()
                         .each(function (d, j) {
-                            select.append('<option value="' + d + '">' + d + '</option>');
+                            let isSelected = '';
+                            if(selected === `^${d}$`) isSelected = 'selected';
+                            select.append('<option value="' + d + '"' + isSelected + '>' + d + '</option>');
                         });
                 })
             })
