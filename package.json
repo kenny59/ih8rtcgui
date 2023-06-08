@@ -7,12 +7,17 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "electron ."
   },
+  "private": false,
   "build": {
-    "directories": {
-      "buildResources": "public"
-    },
+    "asar": false,
     "files": [
-      "public/**/*"
+      "*.js",
+      "build",
+      "node_modules",
+      "pages/**/*",
+      "public/**/*",
+      "package.json",
+      "index.js"
     ]
   },
   "homepage": ".",

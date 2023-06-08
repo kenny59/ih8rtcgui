@@ -62,13 +62,12 @@ function createConfigWindow() {
         width: 800,
         height: 600,
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: true,
             contextIsolation: false,
             devTools: true
         }
     });
-    configWindow.loadFile("./pages/config/config.html");
+    configWindow.loadFile(`pages/config/config.html`);
     configWindow.setTitle("Configuration")
 }
 
@@ -111,7 +110,7 @@ function createWindow () {
                                     store.delete("pass");
                                     store.set("config.hasSavedPassword", false);
                                     store.set("config.useSavedPassword", false);
-                                    _win.loadFile("./pages/login/login.html");
+                                    _win.loadFile("pages/login/login.html");
                                     _win.setTitle("Login")
                                 }
                             })
@@ -135,10 +134,9 @@ function createWindow () {
         minWidth: 1024,
         minHeight: 720,
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: true,
             contextIsolation: false,
-            devTools: true
+            devTools: true,
         }
     })
 
@@ -155,13 +153,13 @@ function createWindow () {
         }
         if(cookiesList.length === tokensNeeded.length) {
             //win.setSize(200, 400);
-            win.loadFile("./pages/main/main.html");
+            win.loadFile("pages/main/main.html");
             win.setTitle("ih8rtcgui tool")
         }
     });
 
 
-    win.loadFile("./pages/login/login.html");
+    win.loadFile("pages/login/login.html");
     win.setTitle("Login")
     _win = win;
 
@@ -302,7 +300,7 @@ ipcMain.handle("getContributorName", async (event, itemId) => {
 ipcMain.handle("login", async (event, username, password, saveCredentials, useSavedCredentials) => {
     let loginResponse = await loginProcess(username, password, saveCredentials, useSavedCredentials);
     if(loginResponse.success) {
-        _win.loadFile("./pages/main/main.html");
+        _win.loadFile("pages/main/main.html");
         _win.setTitle("ih8rtcgui tool")
     }
     return loginResponse;
@@ -359,13 +357,13 @@ async function getData(url) {
         if(store.get("config.hasSavedPassword") === true) {
             if(!await loginWithSavedCredentials()) {
                 //can't login
-                _win.loadFile("./pages/login/login.html");
+                _win.loadFile("pages/login/login.html");
                 _win.setTitle("Login")
             } else {
                 return getData(url);
             }
         } else {
-            _win.loadFile("./pages/login/login.html");
+            _win.loadFile("pages/login/login.html");
             _win.setTitle("Login")
         }
     }
