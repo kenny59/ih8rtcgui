@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <base href="./../../">
+    <title>Configuration</title>
+    <link href="public/bootstrap/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+</head>
+<body>
+  <div style="margin: 50px">
+      <div class="mb-3">
+        <label for="base-url">Base url</label>
+        <input type="email" class="form-control" id="base-url" placeholder="https://jazz.net/ccm-sandbox01">
+      </div>
+      <div class="mb-3">
+        <label for="project-areas">Project areas (line delimited)</label>
+        <textarea multiple class="form-control" id="project-areas">
+        </textarea>
+      </div>
+      <div class="mb-3">
+        <label for="project-areas">Custom attributes (line delimited key-value pair of id and display value eg. build_version=Build version)</label>
+        <textarea multiple class="form-control" id="custom-attributes">
+        </textarea>
+      </div>
+      <div class="mb-3">
+        <button type="button" class="btn btn-primary" onclick="saveConfig()">Save</button>
+      </div>
+
+      <div class="alert alert-danger" role="alert" id="errors" style="display: none;">
+      </div>
+  </div>
+
+
+  <div class="position-fixed bottom-0 end-0 p-3">
+      <div role="alert" aria-live="assertive" aria-atomic="true" class="toast" data-bs-autohide="true">
+          <div class="toast-header">
+              <small>Now</small>
+              <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+          <div class="toast-body" id="config-toast-body">
+
+          </div>
+      </div>
+  </div>
+</body>
+<script src="public/bootstrap/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+<script src="pages/config/config.js"></script>
+
+</html>

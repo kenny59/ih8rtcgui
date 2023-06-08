@@ -45,7 +45,7 @@ let defaultConfig = {
         /** string */ lastFilterType: ''
     },
     /** string[] */ projectAreas: [],
-    /** string */customAttributes: '',
+    /** string */ customAttributes: '',
     /** string */ baseUrl: '',
     /** boolean */ hasSavedPassword: false,
     /** boolean */ useSavedPassword: false
@@ -68,7 +68,7 @@ function createConfigWindow() {
             devTools: true
         }
     });
-    configWindow.loadFile("./config/config.html");
+    configWindow.loadFile("./pages/config/config.html");
     configWindow.setTitle("Configuration")
 }
 
@@ -111,7 +111,7 @@ function createWindow () {
                                     store.delete("pass");
                                     store.set("config.hasSavedPassword", false);
                                     store.set("config.useSavedPassword", false);
-                                    _win.loadFile("login.html");
+                                    _win.loadFile("./pages/login/login.html");
                                     _win.setTitle("Login")
                                 }
                             })
@@ -155,13 +155,13 @@ function createWindow () {
         }
         if(cookiesList.length === tokensNeeded.length) {
             //win.setSize(200, 400);
-            win.loadFile("index.html");
+            win.loadFile("./pages/main/main.html");
             win.setTitle("ih8rtcgui tool")
         }
     });
 
 
-    win.loadFile("login.html");
+    win.loadFile("./pages/login/login.html");
     win.setTitle("Login")
     _win = win;
 
@@ -302,7 +302,7 @@ ipcMain.handle("getContributorName", async (event, itemId) => {
 ipcMain.handle("login", async (event, username, password, saveCredentials, useSavedCredentials) => {
     let loginResponse = await loginProcess(username, password, saveCredentials, useSavedCredentials);
     if(loginResponse.success) {
-        _win.loadFile("index.html");
+        _win.loadFile("./pages/main/main.html");
         _win.setTitle("ih8rtcgui tool")
     }
     return loginResponse;
@@ -359,13 +359,13 @@ async function getData(url) {
         if(store.get("config.hasSavedPassword") === true) {
             if(!await loginWithSavedCredentials()) {
                 //can't login
-                _win.loadFile("login.html");
+                _win.loadFile("./pages/login/login.html");
                 _win.setTitle("Login")
             } else {
                 return getData(url);
             }
         } else {
-            _win.loadFile("login.html");
+            _win.loadFile("./pages/login/login.html");
             _win.setTitle("Login")
         }
     }

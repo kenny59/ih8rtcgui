@@ -1,0 +1,122 @@
+<html lang="en">
+<head>
+    <title>ih8rtcgui tool</title>
+    <base href="./../../">
+    <link href="public/bootstrap/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous" charset="utf-8" >
+    <link href="public/font-awesome/css/all.min.css" rel="stylesheet" type="text/css" charset="utf-8">
+    <link href="public/datatables/datatables.min.css" rel="stylesheet" charset="utf-8"/>
+    <link href="public/datatables/jquery.contextMenu.min.css" rel="stylesheet">
+    <link href="pages/main/main.css" rel="stylesheet" charset="utf-8" />
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="form-floating">
+                <select class="form-select" id="project-area" aria-label="Project area">
+                    <option selected>Add items in Config</option>
+                </select>
+                <label for="project-area">Project area</label>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="form-floating">
+                <select class="form-select" id="filter-by" aria-label="Filter by">
+                    <option value="modified" selected>Modified</option>
+                    <option value="creationDate">Created</option>
+                </select>
+                <label for="filter-by">Filter by</label>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="form-floating">
+                <select class="form-select" id="filter-type" aria-label="Filter type">
+                    <option value=">" selected>after</option>
+                    <option value="<">before</option>
+                </select>
+                <label for="filter-type">Filter type</label>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="form-floating">
+                <input type="date" id="date" class="form-control" data-date-format="dd-mm-yyyy"/>
+                <label for="date">Date</label>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <input type="button" id="team-area-selector-button" value="SEARCH" class="btn btn-primary btn-lg" style="width: 100%; height: 100%" data-bs-toggle="tooltip"/>
+        </div>
+    </div>
+
+    <hr class="hr" />
+
+    <div class="row">
+        <div class="col-md-2 align-self-center" style="font-size: 0.8em;">
+            <div id="close-all-details">
+                Close all details
+                <i class="fa-solid fa-caret-up fa-lg"></i>
+            </div>
+        </div> <div class="col-md-2 align-self-center text-end offset-md-3" style="font-size: 0.8em;">
+            Last updated at:
+        </div>
+        <div class="col-md-2 align-self-center" id="lastUpdatedAt" style="font-size: 0.8em;">
+
+        </div>
+
+        <div class="col-md-3">
+            <div class="form-floating">
+                <select id="refresh-interval" class="form-select" data-bs-toggle="tooltip">
+                    <option value="0">Off</option>
+                    <option value="60">Every 1 minute</option>
+                    <option value="300">Every 5 minutes</option>
+                    <option value="9000">Every 30 minutes</option>
+                    <option value="18000">Every 1 hour</option>
+                </select>
+                <label for="refresh-interval">Refresh interval</label>
+            </div>
+        </div>
+    </div>
+
+    <hr class="hr" />
+
+    <table class="table nowrap" id="workitem-list" style="width: 100%; min-width: 1024px; white-space: normal; word-wrap: break-word;">
+        <thead>
+        <tr>
+            <th scope="col">RTC #</th>
+            <th scope="col">State</th>
+            <th scope="col">Summary</th>
+            <th scope="col">Owner</th>
+            <th scope="col">Modified Date</th>
+            <th scope="col">Subscribers</th>
+            <th scope="col">Tags</th>
+        </tr>
+        </thead>
+        <tbody>
+
+        </tbody>
+        <tfoot>
+        <tr>
+            <th scope="col">RTC #</th>
+            <th scope="col">State</th>
+            <th scope="col">Summary</th>
+            <th scope="col">Owner</th>
+            <th scope="col">Modified Date</th>
+            <th scope="col">Subscribers</th>
+            <th scope="col">Tags</th>
+        </tr>
+        </tfoot>
+    </table>
+</div>
+
+
+<script src="public/jquery/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="public/bootstrap/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+<script src="public/datatables/datatables.min.js"></script>
+<script src="public/datatables/jquery.contextMenu.min.js"></script>
+<script src="public/datatables/jquery.ui.position.js"></script>
+
+
+
+<script src="pages/main/main.js"></script>
+</body>
+</html>

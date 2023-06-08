@@ -1,0 +1,24 @@
+body {
+    background-color: white;
+    color: black;
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: black;
+        color: white;
+    }
+}
+
+ul, .wrap_everything {
+    white-space: normal !important;
+}
+
+tr.odd:hover, tr.even:hover {
+    background-color: #e9e9e9;
+}
+
+div.grid-full-height,
+div.resizable {
+    min-height: 0;
+}
