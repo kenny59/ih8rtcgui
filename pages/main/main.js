@@ -397,7 +397,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
             // Open this row
             let data = await ipcRenderer.invoke("loadWorkItemData", row.data().id);
 
-            row.child(await format(data?.['workitem']?.['workItem'])).show();
+            row.child(await format(data?.['workitem']?.['workItem']), 'detail-size').show();
             tr.addClass('shown');
             $(this).removeClass('spinner-grow');
 

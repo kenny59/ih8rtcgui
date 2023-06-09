@@ -22,3 +22,7 @@ div.grid-full-height,
 div.resizable {
     min-height: 0;
 }
+
+.detail-size {
+    max-width: 1024px;
+}
