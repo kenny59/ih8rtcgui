@@ -125,6 +125,12 @@ function createWindow () {
             createConfigWindow();
         }
     }]).items[0]);
+    menu.append(Menu.buildFromTemplate([{
+        label: "Scroll to top",
+        click: () => {
+            _win.webContents.executeJavaScript('document.body.scrollTop = 0; document.documentElement.scrollTop = 0;');
+        }
+    }]).items[0])
     Menu.setApplicationMenu(menu); // set the modified menu
 
 
