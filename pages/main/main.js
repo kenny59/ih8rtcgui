@@ -124,7 +124,8 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                 cb({'data': []});
                 return;
             }
-            ipcRenderer.invoke("loadWorkItems", projectArea.val(), date.val(), filterBy.val(), filterType.val()).then(value => {
+            ipcRenderer.invoke("loadWorkItems", projectArea.val(), date.val(), filterBy.val(), filterType.val())
+                .then(value => {
                 cb({'data': value});
                 $('#lastUpdatedAt').html(moment(new Date()).format(DATE_FORMAT))
                 table.columns().every((col) => {
@@ -208,7 +209,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                         $('#detail-id').html(row.data().id);
                         $('#detail-title').val(row.data().summary);
                         let workflowTypeStates = states.find(s => s.workflowName === row.data()?.['state']?.['workflow']?.['id']);
-                        let possibleStates = workflowTypeStates?.['states'].find(s => s.stateName === row.data()?.['state']?.['id']);
+                        let possibleStates = workflowTypeStates?.['states'].find(s => s.stateName === row.data()?.['state']?.['name']);
                         let possibleActionOptions = possibleStates?.['possibleStates'].map(pa => {
                             return `<option value="${pa['action']}">${pa['humanFriendlyName']}</option>`
                         }).join('')
@@ -424,8 +425,6 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
             $(this).addClass('spinner-grow');
             // Open this row
             let data = await ipcRenderer.invoke("loadWorkItemData", row.data().id);
-
-            row.data()['workflowType'] = data?.['state']?.['workflow']?.['id'];
 
             row.child(await format(data), 'detail-size').show();
             tr.addClass('shown');

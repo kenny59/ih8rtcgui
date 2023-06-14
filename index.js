@@ -211,7 +211,7 @@ ipcMain.handle("loadWorkItems", async (event, projectArea, date, filterBy, filte
     //filters.push(tagFilters);
     let size = 5;
     let pos = 0;
-    let workItemsUrl = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[${filters.join(" and ")}]/(id|summary|state/name|modified|owner/name|tags|subscriptions/name|state/workflow/id|state/id)`
+    let workItemsUrl = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[${filters.join(" and ")}]/(id|summary|state/name|modified|owner/name|tags|subscriptions/name|state/workflow/id|state/name)`
     allDataList = [];
     let text = await recursivelyCheckAllRemainingData(workItemsUrl);
     return allDataList;
@@ -315,12 +315,12 @@ ipcMain.handle("login", async (event, username, password, saveCredentials, useSa
 });
 
 ipcMain.handle("loadWorkItemData", async (event, rtcNo) => {
-    let url = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[id=${rtcNo}]/(*|creator/name|creator/itemType|comments/creator/name|comments/formattedContent|comments/creationDate|itemHistory/modifiedBy/name|itemHistory/*|itemHistory/owner/name|itemHistory/state/name|itemHistory/subscriptions/name|auditableLinks/targetRef/referencedItem/href|auditableLinks/targetRef/comment|auditableLinks/modified|allExtensions/key|allExtensions/displayValue|customAttributes/identifier|customAttributes/itemType|customAttributes/attributeType|allExtensions/itemValue/itemId|state/id|state/workflow/id)`;
+    let url = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[id=${rtcNo}]/(*|creator/name|creator/itemType|comments/creator/name|comments/formattedContent|comments/creationDate|itemHistory/modifiedBy/name|itemHistory/*|itemHistory/owner/name|itemHistory/state/name|itemHistory/subscriptions/name|auditableLinks/targetRef/referencedItem/href|auditableLinks/targetRef/comment|auditableLinks/modified|allExtensions/key|allExtensions/displayValue|customAttributes/identifier|customAttributes/itemType|customAttributes/attributeType|allExtensions/itemValue/itemId|state/name|state/workflow/id)`;
     let dataPreprocessed = await getData(url);
-    let stateId = dataPreprocessed?.['workitem']?.['workItem']?.['state']?.['id'];
-    let workflowId = dataPreprocessed?.['workitem']?.['workItem']?.['state']?.['workflow']?.['id'];
-    let possibleActions = await getPossibleStates(workflowId, stateId);
-    dataPreprocessed['actions'] = possibleActions;
+    //let stateName = dataPreprocessed?.['workitem']?.['workItem']?.['state']?.['name'];
+    //let workflowId = dataPreprocessed?.['workitem']?.['workItem']?.['state']?.['workflow']?.['id'];
+    //let possibleActions = await getPossibleStates(workflowId, stateName);
+    //dataPreprocessed['actions'] = possibleActions;
     if(dataPreprocessed?.['workitem']?.['workItem']) {
         let wi = dataPreprocessed['workitem']['workItem'];
         wi.id = wi.id + ` <a href="${store.get("config.baseUrl")}/web/projects/${store.get("config.history.lastProjectArea")}#action=com.ibm.team.workitem.viewWorkItem&id=${wi.id}"><i class="fa fa-external-link" aria-hidden="true"></i></a>`;
@@ -428,7 +428,7 @@ async function getPossibleStates(type, currentState) {
         return value?.['@_id'] === type
     })
     let possibleStates = _.find(currentWorkflowDefinition?.['workflow']?.['state'], (value) => {
-        return value?.['@_id'] === currentState
+        return value?.['@_name'] === currentState
     });
     return getArray(possibleStates, 'action').map(ps => {
         return {
@@ -450,7 +450,7 @@ async function getAllStates() {
             workflowName: wd?.['@_id'],
             states: wd?.['workflow']?.['state'].filter(e => e['action']).map(ps => {
                 return {
-                    stateName: ps?.['@_id'],
+                    stateName: ps?.['@_name'],
                     possibleStates: getArray(ps, 'action').map(ps => {
                         return {
                             humanFriendlyName: wd['workflow']?.['action'].find(a => a['@_id'] === ps['@_id'])?.['@_name'],
