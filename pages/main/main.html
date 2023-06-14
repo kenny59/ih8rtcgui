@@ -116,6 +116,35 @@
 <script src="public/datatables/jquery.ui.position.js"></script>
 
 
+<div class="modal fade" id="detail-modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Change details <span id="detail-id"></span></span></h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Summary</span>
+                    </div>
+                    <input type="text" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default" id="detail-title">
+                </div>
+                <div class="form-floating">
+                    <select class="form-select" id="detail-state" aria-label="State">
+                        <option selected>State</option>
+                    </select>
+                    <label for="detail-state">State</label>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="detail-save-button">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script src="pages/main/main.js"></script>
 </body>

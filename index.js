@@ -8,6 +8,8 @@ const fetch = require('node-fetch');
 const parser = new XMLParser({ignoreAttributes : false});
 const moment = require('moment-timezone')
 const Store = require('electron-store');
+const _ = require("lodash")
+const getArray = require("./utils");
 
 let tokensNeeded = ['LtpaToken2', 'JSESSIONID'];
 let cookiesList = [];
@@ -209,7 +211,7 @@ ipcMain.handle("loadWorkItems", async (event, projectArea, date, filterBy, filte
     //filters.push(tagFilters);
     let size = 5;
     let pos = 0;
-    let workItemsUrl = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[${filters.join(" and ")}]/(id|summary|state/name|modified|owner/name|tags|subscriptions/name)`
+    let workItemsUrl = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[${filters.join(" and ")}]/(id|summary|state/name|modified|owner/name|tags|subscriptions/name|state/workflow/id|state/id)`
     allDataList = [];
     let text = await recursivelyCheckAllRemainingData(workItemsUrl);
     return allDataList;
@@ -313,8 +315,12 @@ ipcMain.handle("login", async (event, username, password, saveCredentials, useSa
 });
 
 ipcMain.handle("loadWorkItemData", async (event, rtcNo) => {
-    let url = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[id=${rtcNo}]/(*|creator/name|creator/itemType|comments/creator/name|comments/formattedContent|comments/creationDate|itemHistory/modifiedBy/name|itemHistory/*|itemHistory/owner/name|itemHistory/state/name|itemHistory/subscriptions/name|auditableLinks/targetRef/referencedItem/href|auditableLinks/targetRef/comment|auditableLinks/modified|allExtensions/key|allExtensions/displayValue|customAttributes/identifier|customAttributes/itemType|customAttributes/attributeType|allExtensions/itemValue/itemId)`;
+    let url = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[id=${rtcNo}]/(*|creator/name|creator/itemType|comments/creator/name|comments/formattedContent|comments/creationDate|itemHistory/modifiedBy/name|itemHistory/*|itemHistory/owner/name|itemHistory/state/name|itemHistory/subscriptions/name|auditableLinks/targetRef/referencedItem/href|auditableLinks/targetRef/comment|auditableLinks/modified|allExtensions/key|allExtensions/displayValue|customAttributes/identifier|customAttributes/itemType|customAttributes/attributeType|allExtensions/itemValue/itemId|state/id|state/workflow/id)`;
     let dataPreprocessed = await getData(url);
+    let stateId = dataPreprocessed?.['workitem']?.['workItem']?.['state']?.['id'];
+    let workflowId = dataPreprocessed?.['workitem']?.['workItem']?.['state']?.['workflow']?.['id'];
+    let possibleActions = await getPossibleStates(workflowId, stateId);
+    dataPreprocessed['actions'] = possibleActions;
     if(dataPreprocessed?.['workitem']?.['workItem']) {
         let wi = dataPreprocessed['workitem']['workItem'];
         wi.id = wi.id + ` <a href="${store.get("config.baseUrl")}/web/projects/${store.get("config.history.lastProjectArea")}#action=com.ibm.team.workitem.viewWorkItem&id=${wi.id}"><i class="fa fa-external-link" aria-hidden="true"></i></a>`;
@@ -336,6 +342,15 @@ ipcMain.handle("saveConfig", (event, baseUrl, projectAreas, customAttributes) =>
     return "Saved config successfully";
 })
 
+ipcMain.handle("getAllStates", async (event) => {
+    return await getAllStates();
+})
+
+ipcMain.handle("modifyState", async (event, id, stateId) => {
+    await modifyState(id, stateId);
+    return true;
+})
+
 let STEPS = 1000;
 async function recursivelyCheckAllRemainingData(url, size = STEPS, pos = 0) {
     let text = await getData(url+`&size=${size}&pos=${pos}`);
@@ -348,18 +363,37 @@ async function recursivelyCheckAllRemainingData(url, size = STEPS, pos = 0) {
         await recursivelyCheckAllRemainingData(url, size, pos + STEPS);
     }
 }
-async function getData(url) {
+async function sendData(url, method = 'POST') {
+    let jsessionid = cookiesList.find(c => c.startsWith("JSESSIONID"))?.split("=")[1];
+    let workitems = await fetch(url, {
+        method: method,
+        agent: agent,
+        headers: {
+            'Cookie': cookiesList.join(";"),
+            'X-Jazz-CSRF-Prevent': jsessionid,
+            'Accept': 'application/x-oslc-cm-change-request+json',
+            'Content-Type': 'application/json'
+            //'Cookie': cookiesList.map(cookie => `${cookie.name}=${cookie.value}`).join(";")
+        },
+        body: JSON.stringify({})
+    });
+    console.log(workitems.status);
+    console.log(await workitems.text())
+}
+async function getData(url, overrideStatus = false) {
+    let jsessionid = cookiesList.find(c => c.startsWith("JSESSIONID"))?.split("=")[1];
     let workitems = await fetch(url, {
         agent: agent,
         headers: {
-            'Cookie': cookiesList.join(";")
+            'Cookie': cookiesList.join(";"),
+            'X-Jazz-CSRF-Prevent': jsessionid
             //'Cookie': cookiesList.map(cookie => `${cookie.name}=${cookie.value}`).join(";")
         }
     });
     if(workitems.status === 500) return null;
     let headers = workitems.headers;
     let authRequiredHeader = headers.get('X-com-ibm-team-repository-web-auth-msg');
-    if(authRequiredHeader !== null || workitems.status !== 200) {
+    if((authRequiredHeader !== null || workitems.status !== 200) && !overrideStatus) {
         if(store.get("config.hasSavedPassword") === true) {
             if(!await loginWithSavedCredentials()) {
                 //can't login
@@ -374,4 +408,62 @@ async function getData(url) {
         }
     }
     return await parser.parse(await workitems.text());
+}
+
+async function getContentId() {
+    let contentIdUrl = `${store.get("config.baseUrl")}/rpt/repository/generic?fields=generic/com.ibm.team.process.ProjectArea[name='${store.get("config.history.lastProjectArea")}']/processData[key=%27com.ibm.team.internal.process.compiled.xml%27]/value/contentId`
+    let content = await getData(contentIdUrl);
+    return content?.['generic']?.['com.ibm.team.process.ProjectArea']?.['processData']?.['value']?.['contentId'];
+}
+
+async function getPossibleStates(type, currentState) {
+    let contentId = await getContentId();
+    let resourceUrl = `${store.get("config.baseUrl")}/resource/content/${contentId}`;
+    let resources = await getData(resourceUrl, true);
+    let configurationData = _.get(resources, 'process-specification.project-configuration.data.configuration-data');
+    let workflowDefinitions = _.find(configurationData, (value) => {
+        return value?.['@_id'] === 'com.ibm.team.workitem.configuration.workflow'
+    })?.['workflowDefinition'];
+    let currentWorkflowDefinition = _.find(workflowDefinitions, (value) => {
+        return value?.['@_id'] === type
+    })
+    let possibleStates = _.find(currentWorkflowDefinition?.['workflow']?.['state'], (value) => {
+        return value?.['@_id'] === currentState
+    });
+    return getArray(possibleStates, 'action').map(ps => {
+        return {
+            humanFriendlyName: currentWorkflowDefinition['workflow']?.['action'].find(a => a['@_id'] === ps['@_id'])?.['@_name'],
+            action: ps['@_id']
+        }
+    });
+}
+async function getAllStates() {
+    let contentId = await getContentId();
+    let resourceUrl = `${store.get("config.baseUrl")}/resource/content/${contentId}`;
+    let resources = await getData(resourceUrl, true);
+    let configurationData = _.get(resources, 'process-specification.project-configuration.data.configuration-data');
+    let workflowDefinitions = _.find(configurationData, (value) => {
+        return value?.['@_id'] === 'com.ibm.team.workitem.configuration.workflow'
+    })?.['workflowDefinition'];
+    return workflowDefinitions?.map(wd => {
+        return {
+            workflowName: wd?.['@_id'],
+            states: wd?.['workflow']?.['state'].map(ps => {
+                return {
+                    stateName: ps?.['@_id'],
+                    possibleStates: getArray(ps, 'action').map(ps => {
+                        return {
+                            humanFriendlyName: wd['workflow']?.['action'].find(a => a['@_id'] === ps['@_id'])?.['@_name'],
+                            action: ps['@_id']
+                        }
+                    })
+                }
+            })
+        }
+    })
+}
+
+async function modifyState(id, actionId) {
+    let modifyStateUrl = `${store.get("config.baseUrl")}/oslc/workitems/${id}?_action=${actionId}`;
+    await sendData(modifyStateUrl, 'PUT');
 }

@@ -4,6 +4,7 @@ const moment = require("moment");
 const diffMatchPatch = require('diff-match-patch');
 const _ = require("lodash")
 const DOMPurify = require('dompurify');
+const getArray = require("../../utils");
 
 let projectArea = $("#project-area");
 let date = $("#date");
@@ -14,6 +15,7 @@ let DATE_FORMAT = 'yyyy-MM-DD HH:mm:ss';
 const dmp = new diffMatchPatch();
 
 let openWorkitems = new Set([]);
+let states = [];
 
 function addToOpenWorkItems(item) {
     openWorkitems.add(item);
@@ -30,10 +32,6 @@ function deleteFromOpenWorkItems(item) {
         teamAreaButton.prop('disabled', false);
         refreshIntervalSelector.prop('disabled', false);
     }
-}
-
-function getArray(object, selector) {
-    return Array.isArray(object[selector]) ? object[selector] : Array.of(object[selector])
 }
 
 async function getValueFromRTCObject(rtcObject, workitemObject) {
@@ -103,6 +101,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
     ipcRenderer.on("changedConfig", (event, config) => {
         setDefaultValues();
     })
+    states = await ipcRenderer.invoke("getAllStates");
 
     let firstLoad = true;
 
@@ -199,17 +198,30 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
             selector: 'tr.odd > td,tr.even > td',
             trigger: 'right',
             callback: function (key, options) {
-                var row = table.cell(options.$trigger)
+                var cell = table.cell(options.$trigger)
+                var row = table.row(options.$trigger)
                 switch (key) {
-                    case 'copy' :
-                        navigator.clipboard.writeText(row.render('display'))
+                    case 'copy':
+                        navigator.clipboard.writeText(cell.render('display'))
+                        break;
+                    case 'modify':
+                        $('#detail-id').html(row.data().id);
+                        $('#detail-title').val(row.data().summary);
+                        let workflowTypeStates = states.find(s => s.workflowName === row.data()?.['state']?.['workflow']?.['id']);
+                        let possibleStates = workflowTypeStates?.['states'].find(s => s.stateName === row.data()?.['state']?.['id']);
+                        let possibleActionOptions = possibleStates?.['possibleStates'].map(pa => {
+                            return `<option value="${pa['action']}">${pa['humanFriendlyName']}</option>`
+                        }).join('')
+                        $('#detail-state').html(`<option value="" selected>${row.data().state.name}</option>` + possibleActionOptions);
+                        $('#detail-modal').modal('show');
                         break;
                     default :
                         break
                 }
             },
             items: {
-                "copy": {name: "Copy", icon: "copy"},
+                "copy": {name: "Copy cell value", icon: "copy"},
+                "modify": {name: "Modify row", icon: "modify"},
             }
         })
     });
@@ -283,6 +295,8 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
         let history = "";
         let attachments = "";
 
+        d = d?.['workitem']?.['workItem'];
+
         if(Array.isArray(d?.auditableLinks)) {
             attachments = d?.auditableLinks.map(al => {
                 if(!al.targetRef?.referencedItem?.['@_href']) return null;
@@ -314,7 +328,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                 let historyString = itemHistoryToString(d, ih)
 
                 if(historyString === '') return null;
-                return '<ul class="list-group list-group-horizontal-lg">' +
+                return '<ul class="list-group list-group-horizontal-lg" id="history">' +
                     '<li class="col-2 list-group-item fw-bold list-group-item-secondary" style="min-width: 160px">' +
                     moment(ih.modified).format(DATE_FORMAT) +
                     '</li>' +
@@ -376,7 +390,21 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                 listGroup.splice(spliceAtIndex, 0, val);
             }
         }
-        let listGroupString = listGroup.map((item, i) => '<ul class="list-group list-group-horizontal-lg"><li class="list-group-item list-group-item-secondary fw-bold col-2">' + listGroupHeaders[i] + '</li><li class="list-group-item col-10">' + item + '</li></ul>').join('\n')
+        let listGroupString = listGroup
+            .map((item, i) => {
+                let isCollapsible =  ["History"].includes(listGroupHeaders[i]);
+                    return '<ul class="list-group list-group-horizontal-lg">' +
+                    '<li class="list-group-item list-group-item-secondary fw-bold col-2">' +
+                    `${isCollapsible ? '<a data-bs-toggle="collapse" href="#' + listGroupHeaders[i] + '" aria-expanded="false">' : ''}`+
+                    listGroupHeaders[i] +
+                    `${isCollapsible ? '</a>' : ''}` +
+                    '</li>' +
+                    `<li class="list-group-item col-10 ${isCollapsible ? 'collapse' : ''}" id="${listGroupHeaders[i]}">` +
+                    item +
+                    '</li>' +
+                    `${isCollapsible ? '<li class="list-group-item col-10"></li>' : ''}` +
+                    '</ul>'
+            }).join('\n');
         return (
             listGroupString
         );
@@ -397,7 +425,9 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
             // Open this row
             let data = await ipcRenderer.invoke("loadWorkItemData", row.data().id);
 
-            row.child(await format(data?.['workitem']?.['workItem']), 'detail-size').show();
+            row.data()['workflowType'] = data?.['state']?.['workflow']?.['id'];
+
+            row.child(await format(data), 'detail-size').show();
             tr.addClass('shown');
             $(this).removeClass('spinner-grow');
 
@@ -437,3 +467,11 @@ $('#refresh-interval').change((event) => {
         clearInterval(id);
     }
 })
+
+$('#detail-save-button').click(() => {
+    let stateVal = $('#detail-state').val();
+    let idVal = $('#detail-id').html();
+    ipcRenderer.invoke("modifyState", idVal, stateVal);
+    $('#detail-modal').modal('hide');
+    reloadDataTable();
+});
