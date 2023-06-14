@@ -448,7 +448,7 @@ async function getAllStates() {
     return workflowDefinitions?.map(wd => {
         return {
             workflowName: wd?.['@_id'],
-            states: wd?.['workflow']?.['state'].map(ps => {
+            states: wd?.['workflow']?.['state'].filter(e => e['action']).map(ps => {
                 return {
                     stateName: ps?.['@_id'],
                     possibleStates: getArray(ps, 'action').map(ps => {
