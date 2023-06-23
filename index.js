@@ -22,6 +22,10 @@ let agent = new https.Agent({
 
 //TODO refactor
 //TODO open details in new page?
+//TODO check state before updating if it has not been updated since
+//TODO set owner (from contributors page get all (hidearchivedusers=true, hideadminguest=true, hideunassigned=true)) probably search instead of loading all
+
+//https://jazz.net/sandbox01-ccm/rpt/repository/foundation?fields=projectArea/projectArea[name=%27kenny59%20Project%20(Change%20and%20Architecture%20Management)%27]/teamMembers/*
 
 //TODO nicetohave: zoom
 //TODO nicetohave: custom icon
@@ -345,9 +349,12 @@ ipcMain.handle("saveConfig", (event, baseUrl, projectAreas, customAttributes) =>
 ipcMain.handle("getAllStates", async (event) => {
     return await getAllStates();
 })
+ipcMain.handle("getAllUsers", async (event) => {
+    return await getAllUsers();
+})
 
-ipcMain.handle("modifyState", async (event, id, stateId) => {
-    await modifyState(id, stateId);
+ipcMain.handle("modifyState", async (event, id, stateId, userId) => {
+    await modifyState(id, stateId, userId);
     return true;
 })
 
@@ -363,7 +370,7 @@ async function recursivelyCheckAllRemainingData(url, size = STEPS, pos = 0) {
         await recursivelyCheckAllRemainingData(url, size, pos + STEPS);
     }
 }
-async function sendData(url, method = 'POST') {
+async function sendData(url, method = 'POST', body = {}) {
     let jsessionid = cookiesList.find(c => c.startsWith("JSESSIONID"))?.split("=")[1];
     let workitems = await fetch(url, {
         method: method,
@@ -375,7 +382,7 @@ async function sendData(url, method = 'POST') {
             'Content-Type': 'application/json'
             //'Cookie': cookiesList.map(cookie => `${cookie.name}=${cookie.value}`).join(";")
         },
-        body: JSON.stringify({})
+        body: JSON.stringify(body)
     });
     console.log(workitems.status);
     console.log(await workitems.text())
@@ -463,7 +470,30 @@ async function getAllStates() {
     })
 }
 
-async function modifyState(id, actionId) {
-    let modifyStateUrl = `${store.get("config.baseUrl")}/oslc/workitems/${id}?_action=${actionId}`;
-    await sendData(modifyStateUrl, 'PUT');
+async function getAllUsers() {
+    let resourceUrl = `${store.get("config.baseUrl")}/rpt/repository/foundation?fields=projectArea/projectArea[name=%27${store.get("config.history.lastProjectArea")}%27]/teamMembers/(name|href)`;
+    let resources = await getData(resourceUrl, true);
+    let users = getArray(resources?.['foundation']?.['projectArea'], 'teamMembers').map(tm => {
+        return {
+            name: tm['name'],
+            href: tm['@_href']
+        }
+    })
+    users.unshift({
+        name: 'Unassigned',
+        href: `${store.get("config.baseUrl").replace("ccm", "jts")}/resource/itemName/com.ibm.team.repository.Contributor/unassigned`
+    })
+    return users;
+}
+
+async function modifyState(id, actionId, userId) {
+    let modifyStateUrl = `${store.get("config.baseUrl")}/oslc/workitems/${id}`;
+    if(actionId) modifyStateUrl += `?_action=${actionId}`;
+    let body = {};
+    if(userId) {
+        body = {
+            "rtc_cm:ownedBy": userId
+        }
+    }
+    await sendData(modifyStateUrl, 'PUT', body);
 }

@@ -16,6 +16,7 @@ const dmp = new diffMatchPatch();
 
 let openWorkitems = new Set([]);
 let states = [];
+let users = [];
 
 function addToOpenWorkItems(item) {
     openWorkitems.add(item);
@@ -102,6 +103,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
         setDefaultValues();
     })
     states = await ipcRenderer.invoke("getAllStates");
+    users = await ipcRenderer.invoke("getAllUsers");
 
     let firstLoad = true;
 
@@ -214,6 +216,12 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                             return `<option value="${pa['action']}">${pa['humanFriendlyName']}</option>`
                         }).join('')
                         $('#detail-state').html(`<option value="" selected>${row.data().state.name}</option>` + possibleActionOptions);
+                        let usersOptions = users
+                            .filter(u => u.name !== row.data().owner.name)
+                            .map(u => {
+                            return `<option value="${u.href}">${u.name}</option>`;
+                        })
+                        $('#detail-user').html(`<option value="" selected>${row.data().owner.name}</option>` + usersOptions.join(''));
                         $('#detail-modal').modal('show');
                         break;
                     default :
@@ -469,8 +477,9 @@ $('#refresh-interval').change((event) => {
 
 $('#detail-save-button').click(() => {
     let stateVal = $('#detail-state').val();
+    let userVal = $('#detail-user').val();
     let idVal = $('#detail-id').html();
-    ipcRenderer.invoke("modifyState", idVal, stateVal).then(() => {
+    ipcRenderer.invoke("modifyState", idVal, stateVal, userVal).then(() => {
         reloadDataTable();
     })
     $('#detail-modal').modal('hide');

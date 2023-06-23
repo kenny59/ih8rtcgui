@@ -124,11 +124,11 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="input-group mb-3">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text">Summary</span>
-                    </div>
-                    <input type="text" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default" id="detail-title">
+                <div class="form-floating">
+                    <select class="form-select" id="detail-user" aria-label="Users">
+                        <option selected>Users</option>
+                    </select>
+                    <label for="detail-user">Users</label>
                 </div>
                 <div class="form-floating">
                     <select class="form-select" id="detail-state" aria-label="State">
