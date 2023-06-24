@@ -217,7 +217,8 @@ ipcMain.handle("loadWorkItems", async (event, projectArea, date, filterBy, filte
     let pos = 0;
     let workItemsUrl = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[${filters.join(" and ")}]/(id|summary|state/name|modified|owner/name|tags|subscriptions/name|state/workflow/id|state/name)`
     allDataList = [];
-    let text = await recursivelyCheckAllRemainingData(workItemsUrl);
+    let text = await recursivelyCheckAllRemainingData(workItemsUrl, ['workitem', 'workItem']);
+    allDataList = text;
     return allDataList;
 });
 
@@ -359,16 +360,18 @@ ipcMain.handle("modifyState", async (event, id, stateId, userId) => {
 })
 
 let STEPS = 1000;
-async function recursivelyCheckAllRemainingData(url, size = STEPS, pos = 0) {
+async function recursivelyCheckAllRemainingData(url, selectors, size = STEPS, pos = 0) {
+    let list = [];
     let text = await getData(url+`&size=${size}&pos=${pos}`);
-    if(text?.['workitem']?.['workItem'] != null) {
-        if(Array.isArray(text['workitem']['workItem'])) {
-            allDataList.push(...text['workitem']['workItem']);
+    if(_.get(text, selectors.join('.')) != null) {
+        if(Array.isArray(_.get(text, selectors.join('.')))) {
+            list.push(..._.get(text, selectors.join('.')));
         } else {
-            allDataList.push(text['workitem']['workItem']);
+            list.push(_.get(text, selectors.join('.')));
         }
-        await recursivelyCheckAllRemainingData(url, size, pos + STEPS);
+        list.push(...await recursivelyCheckAllRemainingData(url, selectors, size, pos + size));
     }
+    return list;
 }
 async function sendData(url, method = 'POST', body = {}) {
     let jsessionid = cookiesList.find(c => c.startsWith("JSESSIONID"))?.split("=")[1];
@@ -471,9 +474,9 @@ async function getAllStates() {
 }
 
 async function getAllUsers() {
-    let resourceUrl = `${store.get("config.baseUrl")}/rpt/repository/foundation?fields=projectArea/projectArea[name=%27${store.get("config.history.lastProjectArea")}%27]/teamMembers/(name|href)`;
-    let resources = await getData(resourceUrl, true);
-    let users = getArray(resources?.['foundation']?.['projectArea'], 'teamMembers').map(tm => {
+    let resourceUrl = `${store.get("config.baseUrl")}/rpt/repository/foundation?fields=projectArea/contributor/(name|href)`;
+    let resources = await recursivelyCheckAllRemainingData(resourceUrl, ['foundation', 'contributor'], 10000);
+    let users = resources.map(tm => {
         return {
             name: tm['name'],
             href: tm['@_href']
