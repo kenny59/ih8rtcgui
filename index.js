@@ -24,7 +24,7 @@ let agent = new https.Agent({
 //TODO open details in new page?
 //TODO check state before updating if it has not been updated since
 //TODO set owner (from contributors page get all (hidearchivedusers=true, hideadminguest=true, hideunassigned=true)) probably search instead of loading all
-
+//TODO use constants instead of text
 
 //https://jazz.net/sandbox01-ccm/oslc/users?oslc.where=foaf:name="Tibor*"}&oslc.prefix=foaf=<http://xmlns.com/foaf/0.1/>&oslc.select=foaf:name
  //OSLC-Core-Version: 2.0 needs in header

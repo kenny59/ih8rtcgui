@@ -41,7 +41,7 @@ async function getValueFromRTCObject(rtcObject, workitemObject) {
         case "com.ibm.team.repository.Contributor":
             return String(rtcObject['name'])
         case "com.ibm.team.workitem.Attribute":
-            let allExtensions = getArray(workitemObject, 'allExtensions')
+            let allExtensions = getArray(workitemObject, ['allExtensions'])
             allExtensions = allExtensions.filter(ae => {
                 return ae.key === rtcObject['identifier']
             })
@@ -385,7 +385,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
         let listGroup = [d.id, await getValueFromRTCObject(d.creator, d), moment(d.creationDate).format(DATE_FORMAT), d.summary, d.formattedDescription, attachments, comments, history];
         let spliceAtIndex = 4;
         for (let [k, v] of customAttributes) {
-            let val = await getValueFromRTCObject(getArray(d, 'customAttributes').filter(ca => ca.identifier === k)?.[0], d)
+            let val = await getValueFromRTCObject(getArray(d, ['customAttributes']).filter(ca => ca.identifier === k)?.[0], d)
             if(val !== undefined && val !== null) {
                 listGroupHeaders.splice(spliceAtIndex, 0, v);
                 listGroup.splice(spliceAtIndex, 0, val);
