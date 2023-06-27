@@ -16,7 +16,6 @@ const dmp = new diffMatchPatch();
 
 let openWorkitems = new Set([]);
 let states = [];
-let users = [];
 
 function addToOpenWorkItems(item) {
     openWorkitems.add(item);
@@ -103,7 +102,6 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
         setDefaultValues();
     })
     states = await ipcRenderer.invoke("getAllStates");
-    users = await ipcRenderer.invoke("getAllUsers");
 
     let firstLoad = true;
 
@@ -216,12 +214,6 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                             return `<option value="${pa['action']}">${pa['humanFriendlyName']}</option>`
                         }).join('')
                         $('#detail-state').html(`<option value="" selected>${row.data().state.name}</option>` + possibleActionOptions);
-                        let usersOptions = users
-                            .filter(u => u.name !== row.data().owner.name)
-                            .map(u => {
-                            return `<option value="${u.href}">${u.name}</option>`;
-                        })
-                        $('#detail-user').html(`<option value="" selected>${row.data().owner.name}</option>` + usersOptions.join(''));
                         $('#detail-modal').modal('show');
                         break;
                     default :
@@ -483,4 +475,17 @@ $('#detail-save-button').click(() => {
         reloadDataTable();
     })
     $('#detail-modal').modal('hide');
+});
+
+$('#detail-user').select2({
+    minimumInputLength: 2,
+    ajax: {
+        dataType: 'json',
+        transport: async function (params, success, failure) {
+            let users = await ipcRenderer.invoke("getUsersByCondition", params?.['data']?.['term']);
+            success(users);
+        },
+        delay: 250
+    },
+    dropdownParent: $('#detail-modal')
 });

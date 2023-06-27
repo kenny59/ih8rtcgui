@@ -25,7 +25,9 @@ let agent = new https.Agent({
 //TODO check state before updating if it has not been updated since
 //TODO set owner (from contributors page get all (hidearchivedusers=true, hideadminguest=true, hideunassigned=true)) probably search instead of loading all
 
-//https://jazz.net/sandbox01-ccm/rpt/repository/foundation?fields=projectArea/projectArea[name=%27kenny59%20Project%20(Change%20and%20Architecture%20Management)%27]/teamMembers/*
+
+//https://jazz.net/sandbox01-ccm/oslc/users?oslc.where=foaf:name="Tibor*"}&oslc.prefix=foaf=<http://xmlns.com/foaf/0.1/>&oslc.select=foaf:name
+ //OSLC-Core-Version: 2.0 needs in header
 
 //TODO nicetohave: zoom
 //TODO nicetohave: custom icon
@@ -350,8 +352,8 @@ ipcMain.handle("saveConfig", (event, baseUrl, projectAreas, customAttributes) =>
 ipcMain.handle("getAllStates", async (event) => {
     return await getAllStates();
 })
-ipcMain.handle("getAllUsers", async (event) => {
-    return await getAllUsers();
+ipcMain.handle("getUsersByCondition", async (event, searchText) => {
+    return await getUsersByCondition(searchText);
 })
 
 ipcMain.handle("modifyState", async (event, id, stateId, userId) => {
@@ -360,9 +362,9 @@ ipcMain.handle("modifyState", async (event, id, stateId, userId) => {
 })
 
 let STEPS = 1000;
-async function recursivelyCheckAllRemainingData(url, selectors, size = STEPS, pos = 0) {
+async function recursivelyCheckAllRemainingData(url, selectors, size = STEPS, pos = 0, customHeader = {}) {
     let list = [];
-    let text = await getData(url+`&size=${size}&pos=${pos}`);
+    let text = await getData(url+`&size=${size}&pos=${pos}`, false, customHeader);
     if(_.get(text, selectors.join('.')) != null) {
         if(Array.isArray(_.get(text, selectors.join('.')))) {
             list.push(..._.get(text, selectors.join('.')));
@@ -390,15 +392,19 @@ async function sendData(url, method = 'POST', body = {}) {
     console.log(workitems.status);
     console.log(await workitems.text())
 }
-async function getData(url, overrideStatus = false) {
+async function getData(url, overrideStatus = false, customHeader = {}) {
     let jsessionid = cookiesList.find(c => c.startsWith("JSESSIONID"))?.split("=")[1];
+    let inputHeaders = {
+        'Cookie': cookiesList.join(";"),
+        'X-Jazz-CSRF-Prevent': jsessionid
+        //'Cookie': cookiesList.map(cookie => `${cookie.name}=${cookie.value}`).join(";")
+    }
+    for (const ch in customHeader) {
+        inputHeaders[ch] = customHeader[ch];
+    }
     let workitems = await fetch(url, {
         agent: agent,
-        headers: {
-            'Cookie': cookiesList.join(";"),
-            'X-Jazz-CSRF-Prevent': jsessionid
-            //'Cookie': cookiesList.map(cookie => `${cookie.name}=${cookie.value}`).join(";")
-        }
+        headers: inputHeaders
     });
     if(workitems.status === 500) return null;
     let headers = workitems.headers;
@@ -473,22 +479,46 @@ async function getAllStates() {
     })
 }
 
-async function getAllUsers() {
-    let resourceUrl = `${store.get("config.baseUrl")}/rpt/repository/foundation?fields=projectArea/contributor/(name|href)`;
-    let resources = await recursivelyCheckAllRemainingData(resourceUrl, ['foundation', 'contributor'], 10000);
-    let users = resources.map(tm => {
+async function getUsersByCondition(condition) {
+    let conditionName = new ConditionBuilder().setKey("oslc.where").setValue("foaf:name=\"*" + condition + "*\"")
+    let conditionPrefix = new ConditionBuilder().setWrapQuotes(false).setKey("oslc.prefix").setValue("foaf=<http://xmlns.com/foaf/0.1/>")
+    let conditionSelect = new ConditionBuilder().setKey("oslc.select").setValue("foaf:name")
+    let conditionWhere = [conditionName.toString(), conditionPrefix.toString(), conditionSelect.toString()].join("&")
+    let resourceUrl = `${store.get("config.baseUrl")}/oslc/users?${conditionWhere}`;
+    let resources = await getData(resourceUrl,  false, {"OSLC-Core-Version": "2.0", "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"});
+    let users = resources?.['rdf:RDF']?.['rdf:Description']?.['rdfs:member']?.map(tm => {
         return {
-            name: tm['name'],
-            href: tm['@_href']
+            text: tm['foaf:Person']?.['foaf:name']?.['#text'],
+            id: tm['foaf:Person']?.['@_rdf:about']
         }
     })
-    users.unshift({
-        name: 'Unassigned',
-        href: `${store.get("config.baseUrl").replace("ccm", "jts")}/resource/itemName/com.ibm.team.repository.Contributor/unassigned`
-    })
-    return users;
+    return {
+        results: users
+    };
 }
 
+class ConditionBuilder {
+    key;
+    value;
+    wrapQuotes = false;
+    setKey(key) {
+        this.key = key;
+        return this;
+    }
+    setValue(value) {
+        this.value = value;
+        return this;
+    }
+
+    setWrapQuotes(wrapQuotes) {
+        this.wrapQuotes = wrapQuotes;
+        return this;
+    }
+    toString() {
+        let quote = this.wrapQuotes ? '"' : '';
+        return this.key + "=" + encodeURIComponent(quote + this.value + quote);
+    }
+}
 async function modifyState(id, actionId, userId) {
     let modifyStateUrl = `${store.get("config.baseUrl")}/oslc/workitems/${id}`;
     if(actionId) modifyStateUrl += `?_action=${actionId}`;
