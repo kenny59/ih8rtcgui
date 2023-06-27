@@ -446,7 +446,7 @@ async function getPossibleStates(type, currentState) {
     let possibleStates = _.find(currentWorkflowDefinition?.['workflow']?.['state'], (value) => {
         return value?.['@_name'] === currentState
     });
-    return getArray(possibleStates, 'action').map(ps => {
+    return getArray(possibleStates, ['action']).map(ps => {
         return {
             humanFriendlyName: currentWorkflowDefinition['workflow']?.['action'].find(a => a['@_id'] === ps['@_id'])?.['@_name'],
             action: ps['@_id']
@@ -467,7 +467,7 @@ async function getAllStates() {
             states: wd?.['workflow']?.['state'].filter(e => e['action']).map(ps => {
                 return {
                     stateName: ps?.['@_name'],
-                    possibleStates: getArray(ps, 'action').map(ps => {
+                    possibleStates: getArray(ps, ['action']).map(ps => {
                         return {
                             humanFriendlyName: wd['workflow']?.['action'].find(a => a['@_id'] === ps['@_id'])?.['@_name'],
                             action: ps['@_id']
@@ -486,7 +486,7 @@ async function getUsersByCondition(condition) {
     let conditionWhere = [conditionName.toString(), conditionPrefix.toString(), conditionSelect.toString()].join("&")
     let resourceUrl = `${store.get("config.baseUrl")}/oslc/users?${conditionWhere}`;
     let resources = await getData(resourceUrl,  false, {"OSLC-Core-Version": "2.0", "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"});
-    let users = resources?.['rdf:RDF']?.['rdf:Description']?.['rdfs:member']?.map(tm => {
+    let users = getArray(resources, ['rdf:RDF', 'rdf:Description', 'rdfs:member'])?.map(tm => {
         return {
             text: tm['foaf:Person']?.['foaf:name']?.['#text'],
             id: tm['foaf:Person']?.['@_rdf:about']
