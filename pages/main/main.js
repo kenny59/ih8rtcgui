@@ -16,6 +16,7 @@ const dmp = new diffMatchPatch();
 
 let openWorkitems = new Set([]);
 let states = [];
+let teamAreaUsers = [];
 
 function addToOpenWorkItems(item) {
     openWorkitems.add(item);
@@ -213,6 +214,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                         let possibleActionOptions = possibleStates?.['possibleStates'].map(pa => {
                             return `<option value="${pa['action']}">${pa['humanFriendlyName']}</option>`
                         }).join('')
+                        $('#detail-user').html(`<option value="" selected>${row.data().owner.name}</option>`)
                         $('#detail-state').html(`<option value="" selected>${row.data().state.name}</option>` + possibleActionOptions);
                         $('#detail-modal').modal('show');
                         break;
@@ -221,8 +223,8 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                 }
             },
             items: {
-                "copy": {name: "Copy cell value", icon: "copy"},
-                "modify": {name: "Modify row", icon: "modify"},
+                "copy": {name: "Copy cell value", icon: "fa-copy"},
+                "modify": {name: "Modify row", icon: "fa-edit"},
             }
         })
     });
@@ -433,6 +435,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
             addToOpenWorkItems(row.data().id);
         }
     });
+    $('#overlay').fadeOut();
 })();
 
 
@@ -478,7 +481,6 @@ $('#detail-save-button').click(() => {
 });
 
 $('#detail-user').select2({
-    minimumInputLength: 2,
     ajax: {
         dataType: 'json',
         transport: async function (params, success, failure) {
@@ -487,5 +489,24 @@ $('#detail-user').select2({
         },
         delay: 250
     },
-    dropdownParent: $('#detail-modal')
+    dropdownParent: $('#detail-modal'),
+    theme: "bootstrap-5"
 });
+
+$('#detail-user')
+    .parent('div')
+    .children('span')
+    .children('span')
+    .children('span')
+    .css('height', ' calc(3.5rem + 2px)');
+$('#detail-user')
+    .parent('div')
+    .children('span')
+    .children('span')
+    .children('span')
+    .children('span')
+    .css('margin-top', '18px');
+$('#detail-user')
+    .parent('div')
+    .find('label')
+    .css('z-index', '1');

@@ -26,6 +26,7 @@ let agent = new https.Agent({
 //TODO set owner (from contributors page get all (hidearchivedusers=true, hideadminguest=true, hideunassigned=true)) probably search instead of loading all
 //TODO use constants instead of text
 
+//https://redacted_url:9443/jazz/rpt/repository/generic?fields=generic/com.ibm.team.process.TeamArea[projectArea/name=%22redacted%20(RTC)%22]/(contributors/name)
 //https://jazz.net/sandbox01-ccm/oslc/users?oslc.where=foaf:name="Tibor*"}&oslc.prefix=foaf=<http://xmlns.com/foaf/0.1/>&oslc.select=foaf:name
  //OSLC-Core-Version: 2.0 needs in header
 
@@ -356,6 +357,10 @@ ipcMain.handle("getUsersByCondition", async (event, searchText) => {
     return await getUsersByCondition(searchText);
 })
 
+ipcMain.handle("getTeamAreaUsers", async (event) => {
+    return await getTeamAreaUsers();
+})
+
 ipcMain.handle("modifyState", async (event, id, stateId, userId) => {
     await modifyState(id, stateId, userId);
     return true;
@@ -479,11 +484,22 @@ async function getAllStates() {
     })
 }
 
+async function getTeamAreaUsers() {
+    let url = `${store.get("config.baseUrl")}/rpt/repository/generic?fields=generic/com.ibm.team.process.TeamArea[projectArea/name="${store.get("config.history.lastProjectArea")}"]/(contributors/name|contributors/href)`;
+    let teamareas = await getData(url, false);
+    return _.flatMap(getArray(teamareas, ['generic', 'com.ibm.team.process.TeamArea']).filter(ta => ta), 'contributors').map(contributor => {
+        return {
+            text: contributor['name'],
+            id: contributor['@_href']
+        }
+    })
+}
 async function getUsersByCondition(condition) {
-    let conditionName = new ConditionBuilder().setKey("oslc.where").setValue("foaf:name=\"*" + condition + "*\"")
-    let conditionPrefix = new ConditionBuilder().setWrapQuotes(false).setKey("oslc.prefix").setValue("foaf=<http://xmlns.com/foaf/0.1/>")
+    let conditionWithWildcard = condition ? `*${condition}*` : '*';
+    let conditionName = new ConditionBuilder().setKey("oslc.where").setValue("foaf:name=\"" + conditionWithWildcard + "\"")
+    let conditionPrefixFoaf = new ConditionBuilder().setWrapQuotes(false).setKey("oslc.prefix").setValue("foaf=<http://xmlns.com/foaf/0.1/>")
     let conditionSelect = new ConditionBuilder().setKey("oslc.select").setValue("foaf:name")
-    let conditionWhere = [conditionName.toString(), conditionPrefix.toString(), conditionSelect.toString()].join("&")
+    let conditionWhere = [conditionName.toString(), conditionPrefixFoaf.toString(), conditionSelect.toString()].join("&")
     let resourceUrl = `${store.get("config.baseUrl")}/oslc/users?${conditionWhere}`;
     let resources = await getData(resourceUrl,  false, {"OSLC-Core-Version": "2.0", "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"});
     let users = getArray(resources, ['rdf:RDF', 'rdf:Description', 'rdfs:member'])?.map(tm => {
@@ -491,9 +507,22 @@ async function getUsersByCondition(condition) {
             text: tm['foaf:Person']?.['foaf:name']?.['#text'],
             id: tm['foaf:Person']?.['@_rdf:about']
         }
-    })
+    });
+    let teamAreaUsers = await getTeamAreaUsers();
+    if(condition) {
+        teamAreaUsers = teamAreaUsers.filter(tau => tau.text.toLowerCase().indexOf(condition.toLowerCase()) > -1);
+    }
     return {
-        results: users
+        results: [
+            {
+                text: "Team Area Users",
+                children: _.orderBy(_.uniqBy(teamAreaUsers, 'text'), 'text')
+            },
+            {
+                text: "Search",
+                children: _.orderBy(users, 'text')
+            }
+        ]
     };
 }
 
