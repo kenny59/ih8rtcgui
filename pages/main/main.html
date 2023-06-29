@@ -6,8 +6,9 @@
     <link href="public/font-awesome/css/all.min.css" rel="stylesheet" type="text/css" charset="utf-8">
     <link href="public/datatables/datatables.min.css" rel="stylesheet" charset="utf-8"/>
     <link href="public/datatables/jquery.contextMenu.min.css" rel="stylesheet">
+    <link href="public/jquery/select2.min.css" rel="stylesheet" />
+    <link href="public/bootstrap/select2-bootstrap.min.css" rel="stylesheet" />
     <link href="pages/main/main.css" rel="stylesheet" charset="utf-8" />
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.3/dist/css/select2.min.css" rel="stylesheet" />
 </head>
 <body>
 <div class="container-fluid">
@@ -115,20 +116,19 @@
 <script src="public/datatables/datatables.min.js"></script>
 <script src="public/datatables/jquery.contextMenu.min.js"></script>
 <script src="public/datatables/jquery.ui.position.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.0.3/dist/js/select2.min.js"></script>
+<script src="public/jquery/select2.js"></script>
 
 
 <div class="modal fade" id="detail-modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h1 class="modal-title fs-5" id="exampleModalLabel">Change details <span id="detail-id"></span></span></h1>
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Change details <span id="detail-id"></span></h1>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="form-floating">
                     <select class="js-example-data-ajax form-select" id="detail-user" aria-label="Users">
-                        <option selected>Users</option>
                     </select>
                     <label for="detail-user">Users</label>
                 </div>
@@ -138,7 +138,6 @@
                     </select>
                     <label for="detail-state">State</label>
                 </div>
-
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -146,6 +145,12 @@
             </div>
         </div>
     </div>
+</div>
+
+<div id="overlay" style="">
+    <div class="fa fa-spinner"></div>
+    <br/>
+    Loading...
 </div>
 
 <script src="pages/main/main.js"></script>
