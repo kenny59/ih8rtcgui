@@ -450,8 +450,10 @@ $('tfoot th').each(function () {
 });
 
 function reloadDataTable() {
+    $('#overlay').fadeIn();
     if(openWorkitems.size > 0) return;
     $('#workitem-list').DataTable().ajax.reload();
+    $('#overlay').fadeOut();
 }
 
 $('#team-area-selector-button').click(() => {

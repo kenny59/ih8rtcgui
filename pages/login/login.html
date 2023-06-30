@@ -5,6 +5,22 @@
     <title>Login</title>
     <base href="./../../">
     <link href="public/bootstrap/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <style type="text/css">
+        #overlay {
+            background: #ffffff;
+            color: #666666;
+            position: fixed;
+            height: 100%;
+            width: 100%;
+            z-index: 5000;
+            top: 0;
+            left: 0;
+            float: left;
+            text-align: center;
+            padding-top: 25%;
+            opacity: .80;
+        }
+    </style>
 </head>
 <body>
 
@@ -54,6 +70,12 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <div id="overlay" style="display: none">
+        <div class="fa fa-spinner"></div>
+        <br/>
+        Loading...
     </div>
 
     <script src="public/jquery/jquery-3.3.1.slim.min.js" crossorigin="anonymous" onload="window.$ = window.jQuery = module.exports;"></script>

@@ -485,7 +485,7 @@ async function getAllStates() {
 }
 
 async function getTeamAreaUsers() {
-    let url = `${store.get("config.baseUrl")}/rpt/repository/generic?fields=generic/com.ibm.team.process.TeamArea[projectArea/name="${store.get("config.history.lastProjectArea")}"]/(contributors/name|contributors/href)`;
+    let url = `${store.get("config.baseUrl")}/rpt/repository/generic?fields=generic/com.ibm.team.process.TeamArea[projectArea/name="${store.get("config.history.lastProjectArea")}"]/contributors[archived=false]/(name|href)`;
     let teamareas = await getData(url, false);
     return _.flatMap(getArray(teamareas, ['generic', 'com.ibm.team.process.TeamArea']).filter(ta => ta), 'contributors').map(contributor => {
         return {
@@ -496,7 +496,7 @@ async function getTeamAreaUsers() {
 }
 async function getUsersByCondition(condition) {
     let conditionWithWildcard = condition ? `*${condition}*` : '*';
-    let conditionName = new ConditionBuilder().setKey("oslc.where").setValue("foaf:name=\"" + conditionWithWildcard + "\"")
+    let conditionName = new ConditionBuilder().setKey("oslc.where").setValue("foaf:name=\"" + conditionWithWildcard + "\" and foaf:archived=false")
     let conditionPrefixFoaf = new ConditionBuilder().setWrapQuotes(false).setKey("oslc.prefix").setValue("foaf=<http://xmlns.com/foaf/0.1/>")
     let conditionSelect = new ConditionBuilder().setKey("oslc.select").setValue("foaf:name")
     let conditionWhere = [conditionName.toString(), conditionPrefixFoaf.toString(), conditionSelect.toString()].join("&")
