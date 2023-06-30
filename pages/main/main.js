@@ -475,9 +475,11 @@ $('#refresh-interval').change((event) => {
 $('#detail-save-button').click(() => {
     let stateVal = $('#detail-state').val();
     let userVal = $('#detail-user').val();
+    let commentVal = $('#detail-comment').val();
     let idVal = $('#detail-id').html();
-    ipcRenderer.invoke("modifyState", idVal, stateVal, userVal).then(() => {
+    ipcRenderer.invoke("modifyState", idVal, stateVal, userVal, commentVal).then(() => {
         reloadDataTable();
+        $('#detail-comment').val("");
     })
     $('#detail-modal').modal('hide');
 });
