@@ -4,12 +4,14 @@ const https = require('https');
 const $ = require("jquery");
 
 function login() {
+    $('#overlay').show();
     ipcRenderer.invoke("login", $('#j_username').val(), $('#j_password').val(), $('#save-details').prop('checked'), $('#saved-pass-checkbox').prop('checked')).then(response => {
         if(!response.success) {
             $('#message').text(response.message);
             new bootstrap.Modal($('#myModal')).show();
         }
     })
+    $('#overlay').fadeOut();
 }
 
 ipcRenderer.invoke("getUserNameAndDummyPass").then(resp => {
