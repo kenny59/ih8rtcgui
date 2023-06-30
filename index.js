@@ -555,17 +555,18 @@ async function modifyState(id, actionId, userId, comment) {
     let modifyStateUrl = `${store.get("config.baseUrl")}/oslc/workitems/${id}`;
     if(actionId) modifyStateUrl += `?_action=${actionId}`;
     let body = {};
-    let commentBody = {};
     if(userId) {
         body = {
             "rtc_cm:ownedBy": userId
         }
     }
-    await sendData(modifyStateUrl, 'PUT', body);
-    if(comment) {
-        commentBody = {
+    if(userId || actionId) {
+        await sendData(modifyStateUrl, 'PUT', body);
+    }
+    if(comment && comment.replace(/\s/g, '').length) {
+        let commentBody = {
             "dc:description": comment.replace("\n", "<br>")
         }
+        await sendData(`${modifyStateUrl}/rtc_cm:comments`, 'POST', commentBody);
     }
-    await sendData(`${modifyStateUrl}/rtc_cm:comments`, 'POST', commentBody);
 }
