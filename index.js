@@ -434,7 +434,8 @@ async function getData(url, overrideStatus = false, customHeader = {}) {
 }
 
 async function getContentId() {
-    let contentIdUrl = `${store.get("config.baseUrl")}/rpt/repository/generic?fields=generic/com.ibm.team.process.ProjectArea[name='${store.get("config.history.lastProjectArea")}']/processData[key=%27com.ibm.team.internal.process.compiled.xml%27]/value/contentId`
+    let teamarea = store.get("config.history.lastProjectArea") || store.get("config.projectAreas")?.[0];
+    let contentIdUrl = `${store.get("config.baseUrl")}/rpt/repository/generic?fields=generic/com.ibm.team.process.ProjectArea[name='${teamarea}']/processData[key=%27com.ibm.team.internal.process.compiled.xml%27]/value/contentId`
     let content = await getData(contentIdUrl);
     return content?.['generic']?.['com.ibm.team.process.ProjectArea']?.['processData']?.['value']?.['contentId'];
 }
