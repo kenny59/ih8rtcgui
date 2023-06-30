@@ -25,6 +25,8 @@ let agent = new https.Agent({
 //TODO check state before updating if it has not been updated since
 //TODO set owner (from contributors page get all (hidearchivedusers=true, hideadminguest=true, hideunassigned=true)) probably search instead of loading all
 //TODO use constants instead of text
+//TODO add comments
+//TODO hide row (or just select differnt color)
 
 //https://rtc.prg-dc.dhl.com:9443/jazz/rpt/repository/generic?fields=generic/com.ibm.team.process.TeamArea[projectArea/name=%22DHL%20Express%20OTC%20(RTC)%22]/(contributors/name)
 //https://jazz.net/sandbox01-ccm/oslc/users?oslc.where=foaf:name="Tibor*"}&oslc.prefix=foaf=<http://xmlns.com/foaf/0.1/>&oslc.select=foaf:name
@@ -361,8 +363,8 @@ ipcMain.handle("getTeamAreaUsers", async (event) => {
     return await getTeamAreaUsers();
 })
 
-ipcMain.handle("modifyState", async (event, id, stateId, userId) => {
-    await modifyState(id, stateId, userId);
+ipcMain.handle("modifyState", async (event, id, stateId, userId, comment) => {
+    await modifyState(id, stateId, userId, comment);
     return true;
 })
 
@@ -548,14 +550,21 @@ class ConditionBuilder {
         return this.key + "=" + encodeURIComponent(quote + this.value + quote);
     }
 }
-async function modifyState(id, actionId, userId) {
+async function modifyState(id, actionId, userId, comment) {
     let modifyStateUrl = `${store.get("config.baseUrl")}/oslc/workitems/${id}`;
     if(actionId) modifyStateUrl += `?_action=${actionId}`;
     let body = {};
+    let commentBody = {};
     if(userId) {
         body = {
             "rtc_cm:ownedBy": userId
         }
     }
     await sendData(modifyStateUrl, 'PUT', body);
+    if(comment) {
+        commentBody = {
+            "dc:description": comment.replace("\n", "<br>")
+        }
+    }
+    await sendData(`${modifyStateUrl}/rtc_cm:comments`, 'POST', commentBody);
 }

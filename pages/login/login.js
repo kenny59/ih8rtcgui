@@ -10,8 +10,8 @@ function login() {
             $('#message').text(response.message);
             new bootstrap.Modal($('#myModal')).show();
         }
+        $('#overlay').fadeOut();
     })
-    $('#overlay').fadeOut();
 }
 
 ipcRenderer.invoke("getUserNameAndDummyPass").then(resp => {
