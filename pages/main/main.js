@@ -492,12 +492,20 @@ $('#detail-save-button').click(() => {
     $('#detail-modal').modal('hide');
 });
 
+let requestTimes = [];
+
 $('#detail-user').select2({
     ajax: {
         dataType: 'json',
         transport: async function (params, success, failure) {
+            let startTime = new Date();
+            requestTimes.push(startTime);
             let users = await ipcRenderer.invoke("getUsersByCondition", params?.['data']?.['term']);
-            success(users);
+            console.log(requestTimes.length > 0 && requestTimes.some(rt => rt > startTime));
+            if(_.max(requestTimes) === startTime) {
+                success(users);
+                requestTimes = [];
+            }
         },
         delay: 250
     },
