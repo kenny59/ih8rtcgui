@@ -483,11 +483,11 @@ $('#refresh-interval').change((event) => {
 $('#detail-save-button').click(() => {
     let stateVal = $('#detail-state').val();
     let userVal = $('#detail-user').val();
-    let commentVal = $('#detail-comment').html();
+    let commentVal = $('#detail-comment').trumbowyg('html');
     let idVal = $('#detail-id').html();
     ipcRenderer.invoke("modifyState", idVal, stateVal, userVal, commentVal).then(() => {
         reloadDataTable();
-        $('#detail-comment').html("");
+        $('#detail-comment').trumbowyg('empty');
     })
     $('#detail-modal').modal('hide');
 });
