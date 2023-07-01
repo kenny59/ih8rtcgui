@@ -23,7 +23,6 @@ let agent = new https.Agent({
 //TODO refactor
 //TODO open details in new page?
 //TODO check state before updating if it has not been updated since
-//TODO set owner (from contributors page get all (hidearchivedusers=true, hideadminguest=true, hideunassigned=true)) probably search instead of loading all
 //TODO use constants instead of text
 //TODO hide row (or just select differnt color)
 
