@@ -8,6 +8,7 @@
     <link href="public/datatables/jquery.contextMenu.min.css" rel="stylesheet">
     <link href="public/jquery/select2.min.css" rel="stylesheet" />
     <link href="public/bootstrap/select2-bootstrap.min.css" rel="stylesheet" />
+    <link href="public/trumbowyg/trumbowyg.min.css" rel="stylesheet" />
     <link href="pages/main/main.css" rel="stylesheet" charset="utf-8" />
 </head>
 <body>
@@ -117,9 +118,11 @@
 <script src="public/datatables/jquery.contextMenu.min.js"></script>
 <script src="public/datatables/jquery.ui.position.js"></script>
 <script src="public/jquery/select2.js"></script>
+<script src="public/trumbowyg/trumbowyg.min.js"></script>
+<script src="public/trumbowyg/trumbowyg.history.min.js"></script>
 
 
-<div class="modal fade" id="detail-modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal fade" data-bs-focus="false" id="detail-modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -139,8 +142,10 @@
                     <label for="detail-state">State</label>
                 </div>
                 <div class="form-floating">
-                    <textarea multiple class="form-control" id="detail-comment"></textarea>
-                    <label for="detail-comment">Comment</label>
+                    <div class="form-control" id="detail-comment-div" style="height: fit-content">
+                        <div id="detail-comment"></div>
+                    </div>
+                    <label for="detail-comment-div">Comment</label>
                 </div>
             </div>
             <div class="modal-footer">
