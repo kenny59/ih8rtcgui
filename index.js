@@ -25,8 +25,8 @@ let agent = new https.Agent({
 //TODO check state before updating if it has not been updated since
 //TODO set owner (from contributors page get all (hidearchivedusers=true, hideadminguest=true, hideunassigned=true)) probably search instead of loading all
 //TODO use constants instead of text
-//TODO add comments
 //TODO hide row (or just select differnt color)
+//TODO wysiwyg editor?
 
 //https://redacted_url:9443/jazz/rpt/repository/generic?fields=generic/com.ibm.team.process.TeamArea[projectArea/name=%22redacted%20(RTC)%22]/(contributors/name)
 //https://jazz.net/sandbox01-ccm/oslc/users?oslc.where=foaf:name="Tibor*"}&oslc.prefix=foaf=<http://xmlns.com/foaf/0.1/>&oslc.select=foaf:name

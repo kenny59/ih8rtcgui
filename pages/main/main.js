@@ -149,7 +149,6 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                             select.val('');
                         }
                     }
-                    //TODO not wqorking anymore
                     that
                         .data()
                         .unique()
@@ -159,7 +158,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                             if(selected === `^${d}$`) isSelected = 'selected';
                             select.append('<option value="' + d + '"' + isSelected + '>' + d + '</option>');
                         });
-                }).catch(err => console.log(err))
+                })
             })
         },
         columns: [
@@ -481,11 +480,11 @@ $('#refresh-interval').change((event) => {
 $('#detail-save-button').click(() => {
     let stateVal = $('#detail-state').val();
     let userVal = $('#detail-user').val();
-    let commentVal = $('#detail-comment').val();
+    let commentVal = $('#detail-comment').html();
     let idVal = $('#detail-id').html();
     ipcRenderer.invoke("modifyState", idVal, stateVal, userVal, commentVal).then(() => {
         reloadDataTable();
-        $('#detail-comment').val("");
+        $('#detail-comment').html("");
     })
     $('#detail-modal').modal('hide');
 });
@@ -502,6 +501,13 @@ $('#detail-user').select2({
     dropdownParent: $('#detail-modal'),
     theme: "bootstrap-5"
 });
+$('#detail-comment').trumbowyg({
+    btns: [['strong'], ['historyUndo', 'historyRedo'], ['link']],
+    autogrow: false,
+    autogrowOnEnter: false,
+    minimalLinks: true,
+    removeformatPasted: true
+})
 
 $('#detail-user')
     .parent('div')
