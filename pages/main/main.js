@@ -456,7 +456,10 @@ $('tfoot th').each(function () {
 
 function reloadDataTable() {
     $('#overlay').fadeIn();
-    if(openWorkitems.size > 0) return;
+    if(openWorkitems.size > 0) {
+        $('#overlay').fadeOut();
+        return;
+    }
     $('#workitem-list').DataTable().ajax.reload();
     $('#overlay').fadeOut();
 }
