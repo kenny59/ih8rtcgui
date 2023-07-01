@@ -159,7 +159,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                             if(selected === `^${d}$`) isSelected = 'selected';
                             select.append('<option value="' + d + '"' + isSelected + '>' + d + '</option>');
                         });
-                })
+                }).catch(err => console.log(err))
             })
         },
         columns: [
@@ -193,6 +193,12 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                         }
                     });
                 });
+        },
+        stateSaveCallback: function(settings,data,) {
+            ipcRenderer.invoke("saveDataTables", data);
+        },
+        stateLoadCallback: function(settings, callback) {
+            ipcRenderer.invoke("loadDataTables").then(res => callback(res));
         }
     });
     $(function() {
