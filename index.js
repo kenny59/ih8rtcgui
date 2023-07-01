@@ -36,6 +36,10 @@ let agent = new https.Agent({
 //TODO nicetohave: custom icon
 //TODO nicetohave: connection error show error
 
+if (process.env.PORTABLE_EXECUTABLE_DIR)
+    app.setPath ('userData', path.join(process.env.PORTABLE_EXECUTABLE_DIR, "data"));
+
+
 require('electron-debug')({ showDevTools: false });
 
 const store = new Store({
@@ -46,7 +50,17 @@ const store = new Store({
 
 /**
  *
- * @type {{baseUrl: string, useSavedPassword: boolean, projectAreas: *[], history: {lastProjectArea: string, lastFilterBy: string, lastFilterType: string, lastDate: string}, hasSavedPassword: boolean, customAttributes: string}}
+ * @type {
+ *  {
+ *   baseUrl: string,
+ *   useSavedPassword: boolean,
+ *   projectAreas: *[],
+ *   history: {lastProjectArea: string, lastFilterBy: string, lastFilterType: string, lastDate: string},
+ *   hasSavedPassword: boolean,
+ *   customAttributes: string,
+ *   datatablesState: object
+ *  }
+ * }
  */
 let defaultConfig = {
     history: {
@@ -59,7 +73,8 @@ let defaultConfig = {
     /** string */ customAttributes: '',
     /** string */ baseUrl: '',
     /** boolean */ hasSavedPassword: false,
-    /** boolean */ useSavedPassword: false
+    /** boolean */ useSavedPassword: false,
+    /** object */ datatablesState: {}
 }
 
 if(!store.get("config")) {
@@ -278,6 +293,14 @@ ipcMain.handle("getUserNameAndDummyPass", (event) => {
     let user = store.get("user");
     let pass = store.get("pass");
     return {user: user, pass: "*".repeat(8), hasSavedPass: store.get("config.hasSavedPassword"), useSavedPass: store.get("config.useSavedPassword")};
+})
+
+let DATATABLES_STATE_KEY = "datatablesState"
+ipcMain.handle("saveDataTables", (event, data) => {
+    return store.set(DATATABLES_STATE_KEY, data);
+})
+ipcMain.handle("loadDataTables", (event) => {
+    return store.get(DATATABLES_STATE_KEY);
 })
 
 async function loginWithSavedCredentials() {
