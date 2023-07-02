@@ -35,8 +35,8 @@ function reinitDateRangePicker(startDate, endDate) {
         daterangepickeroptions['singleDatePicker'] = false;
         $(this).val(moment(startDate).format(DATE_FORMAT) + ' - ' + moment(endDate).format(DATE_FORMAT));
     }
-    daterangepickeroptions['startDate'] = moment(startDate);
-    daterangepickeroptions['endDate'] = moment(endDate);
+    daterangepickeroptions['startDate'] = startDate ? moment(startDate) : moment();
+    daterangepickeroptions['endDate'] = endDate ? moment(endDate) : moment();
     $('#date').daterangepicker("destroy");
     $('#date').daterangepicker(daterangepickeroptions)
 
