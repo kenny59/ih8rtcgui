@@ -241,6 +241,31 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
         },
         stateLoadCallback: function(settings, callback) {
             ipcRenderer.invoke("loadDataTables").then(res => callback(res));
+        },
+        stateLoaded: (settings, data) => {
+            $("#column-visibility").select2({
+                closeOnSelect: false,
+                data: $('#workitem-list').DataTable().columns()[0].map(column => {
+                    let col = $('#workitem-list').DataTable().column(column);
+                    return {
+                        id: column,
+                        text: col.header().textContent,
+                        selected: col.visible()
+                    }
+                })
+            });
+
+            $('#column-visibility').on('select2:select', function (e) {
+                handleSelectUnselect(e)
+            });
+            $('#column-visibility').on('select2:unselect', function (e) {
+                handleSelectUnselect(e)
+            });
+
+            function handleSelectUnselect(e) {
+                let id = parseInt(e.params.data.id);
+                $('#workitem-list').DataTable().column(id).visible(e.params.data.selected)
+            }
         }
     });
     $(function() {
@@ -483,30 +508,6 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
             addToOpenWorkItems(row.data().id);
         }
     });
-
-    $("#column-visibility").select2({
-        closeOnSelect: false,
-        data: $('#workitem-list').DataTable().columns()[0].map(column => {
-                    let col = $('#workitem-list').DataTable().column(column);
-                    return {
-                        id: column,
-                        text: col.header().textContent,
-                        selected: col.visible()
-                    }
-                })
-    });
-
-    $('#column-visibility').on('select2:select', function (e) {
-        handleSelectUnselect(e)
-    });
-    $('#column-visibility').on('select2:unselect', function (e) {
-        handleSelectUnselect(e)
-    });
-
-    function handleSelectUnselect(e) {
-        let id = parseInt(e.params.data.id);
-        $('#workitem-list').DataTable().column(id).visible(e.params.data.selected)
-    }
 
     $('#overlay').fadeOut();
 })();
