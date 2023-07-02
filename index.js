@@ -25,6 +25,8 @@ let agent = new https.Agent({
 //TODO check state before updating if it has not been updated since
 //TODO use constants instead of text
 //TODO hide row (or just select differnt color)
+//TODO fix initial empty
+//TODO fix timezone incorrect
 
 //https://redacted_url:9443/jazz/rpt/repository/generic?fields=generic/com.ibm.team.process.TeamArea[projectArea/name=%22redacted%20(RTC)%22]/(contributors/name)
 //https://jazz.net/sandbox01-ccm/oslc/users?oslc.where=foaf:name="Tibor*"}&oslc.prefix=foaf=<http://xmlns.com/foaf/0.1/>&oslc.select=foaf:name
@@ -53,7 +55,7 @@ const store = new Store({
  *   baseUrl: string,
  *   useSavedPassword: boolean,
  *   projectAreas: *[],
- *   history: {lastProjectArea: string, lastFilterBy: string, lastFilterType: string, lastDate: string},
+ *   history: {lastProjectArea: string, lastFilterBy: string, lastFilterType: string, lastStartDate: string, lastEndDate: string},
  *   hasSavedPassword: boolean,
  *   customAttributes: string,
  *   datatablesState: object
@@ -63,7 +65,8 @@ const store = new Store({
 let defaultConfig = {
     history: {
         /** string */ lastProjectArea: '',
-        /** string */ lastDate: '',
+        /** string */ lastStartDate: '',
+        /** string */ lastEndDate: '',
         /** string */ lastFilterBy: '',
         /** string */ lastFilterType: ''
     },
@@ -218,18 +221,20 @@ ipcMain.handle("getDefaultValues", (event) => {
     return store.get("config");
 })
 
-ipcMain.handle("loadWorkItems", async (event, projectArea, date, filterBy, filterType) => {
+ipcMain.handle("loadWorkItems", async (event, projectArea, startDateString, endDateString, filterBy, filterType) => {
     store.set("config.history.lastProjectArea", projectArea);
-    store.set("config.history.lastDate", date);
+    store.set("config.history.lastStartDate", startDateString);
+    store.set("config.history.lastEndDate", endDateString);
     store.set("config.history.lastFilterBy", filterBy);
     store.set("config.history.lastFilterType", filterType);
 
     let filters = [`projectArea/name='${projectArea}'`];
     //let tagFilters = tag.split(",").map(t => `tags=|${t}|`).join(" or ");
-    if(date !== "") {
-        const dateMoment = moment(date).utc(true).format("YYYY-MM-DDTHH:mm:ss.SSSZZ").replace("+", "-")
-        filters.push(`${filterBy}${filterType}${dateMoment}`);
-    }
+    [{date: moment(startDateString), operator: ">"}, {date: moment(endDateString), operator: "<"}].forEach(date => {
+        if(filterType !== date.operator && filterType !== "!!") return;
+        const dateMoment = moment(date.date).utc(true).format("YYYY-MM-DDTHH:mm:ss.SSSZZ").replace("+", "-")
+        filters.push(`${filterBy}${date.operator}${dateMoment}`);
+    })
     //filters.push(tagFilters);
     let size = 5;
     let pos = 0;
