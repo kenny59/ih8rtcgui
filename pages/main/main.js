@@ -11,6 +11,41 @@ let date = $("#date");
 let filterBy = $('#filter-by');
 let filterType = $('#filter-type');
 
+let daterangepickeroptions = {
+    autoUpdateInput: true,
+    locale: {
+        cancelLabel: 'Clear',
+        format: 'DD/MM/YYYY'
+    },
+    showWeekNumbers: true,
+    //timePicker: true,
+    //timePicker24Hour: true,
+    //timePickerIncrement: 15,
+    showDropdowns: true,
+    autoApply: true
+}
+filterType.on('change', () => {
+    reinitDateRangePicker($('#date').data('daterangepicker').startDate, $('#date').data('daterangepicker').endDate)
+})
+function reinitDateRangePicker(startDate, endDate) {
+    if(filterType.val() !== "!!") {
+        daterangepickeroptions['singleDatePicker'] = true;
+        $(this).val(moment(startDate).format(DATE_FORMAT));
+    } else {
+        daterangepickeroptions['singleDatePicker'] = false;
+        $(this).val(moment(startDate).format(DATE_FORMAT) + ' - ' + moment(endDate).format(DATE_FORMAT));
+    }
+    daterangepickeroptions['startDate'] = moment(startDate);
+    daterangepickeroptions['endDate'] = moment(endDate);
+    $('#date').daterangepicker("destroy");
+    $('#date').daterangepicker(daterangepickeroptions)
+
+    $('#date').on('cancel.daterangepicker', function(ev, picker) {
+        $(this).val('');
+    });
+
+}
+
 let DATE_FORMAT = 'yyyy-MM-DD HH:mm:ss';
 const dmp = new diffMatchPatch();
 
@@ -75,22 +110,27 @@ async function setDefaultValues() {
         } else {
             projectArea.val(resp.history.lastProjectArea)
         }
-        if(!validateEmpty(resp.history.lastDate)) {
-            date.val(moment(new Date()).format('YYYY-MM-DD'))
+        if(!validateEmpty(resp.history.lastFilterType)) {
+            filterType.prop("selectedIndex", 0);
+            filterType.trigger("change");
         } else {
-            date.val(resp.history.lastDate)
-
+            filterType.val(resp.history.lastFilterType)
+            filterType.trigger("change");
         }
         if(!validateEmpty(resp.history.lastFilterBy)) {
             filterBy.prop("selectedIndex", 0);
         } else {
             filterBy.val(resp.history.lastFilterBy)
         }
-        if(!validateEmpty(resp.history.lastFilterType)) {
-            filterType.prop("selectedIndex", 0);
-        } else {
-            filterType.val(resp.history.lastFilterType)
+        if(!validateEmpty(resp.history.lastStartDate)) {
+            date.val(moment(new Date()).format('YYYY-MM-DD'))
         }
+        if(!validateEmpty(resp.history.lastEndDate)) {
+            date.val(moment(new Date()).format('YYYY-MM-DD'))
+        }
+
+        reinitDateRangePicker(resp.history.lastStartDate, resp.history.lastEndDate)
+
         customAttributes = new Map(Object.entries(JSON.parse(resp.customAttributes)));
     });
 }
@@ -98,6 +138,9 @@ async function setDefaultValues() {
 let DROPDOWN_COLUMNS = ["State", "Owner"];
 
 (async () => {
+    $('#date').daterangepicker(daterangepickeroptions);
+    $('#date').val("")
+
     await setDefaultValues();
     ipcRenderer.on("changedConfig", (event, config) => {
         setDefaultValues();
@@ -125,7 +168,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                 cb({'data': []});
                 return;
             }
-            ipcRenderer.invoke("loadWorkItems", projectArea.val(), date.val(), filterBy.val(), filterType.val())
+            ipcRenderer.invoke("loadWorkItems", projectArea.val(), date.data('daterangepicker').startDate.format(DATE_FORMAT), date.data('daterangepicker').endDate.format(DATE_FORMAT), filterBy.val(), filterType.val())
                 .then(value => {
                 cb({'data': value});
                 $('#lastUpdatedAt').html(moment(new Date()).format(DATE_FORMAT))

@@ -9,6 +9,7 @@
     <link href="public/jquery/select2.min.css" rel="stylesheet" />
     <link href="public/bootstrap/select2-bootstrap.min.css" rel="stylesheet" />
     <link href="public/trumbowyg/trumbowyg.min.css" rel="stylesheet" />
+    <link href="public/daterangepicker/daterangepicker.css" rel="stylesheet" type="text/css" />
     <link href="pages/main/main.css" rel="stylesheet" charset="utf-8" />
 </head>
 <body>
@@ -34,15 +35,16 @@
         <div class="col-md-2">
             <div class="form-floating">
                 <select class="form-select" id="filter-type" aria-label="Filter type">
-                    <option value=">" selected>after</option>
+                    <option value=">">after</option>
                     <option value="<">before</option>
+                    <option value="!!" selected>between</option>
                 </select>
                 <label for="filter-type">Filter type</label>
             </div>
         </div>
         <div class="col-md-2">
             <div class="form-floating">
-                <input type="date" id="date" class="form-control" data-date-format="dd-mm-yyyy"/>
+                <input id="date" class="form-control" data-date-format="dd-mm-yyyy"/>
                 <label for="date">Date</label>
             </div>
         </div>
@@ -125,6 +127,7 @@
 <script src="public/jquery/select2.js"></script>
 <script src="public/trumbowyg/trumbowyg.min.js"></script>
 <script src="public/trumbowyg/trumbowyg.history.min.js"></script>
+<script src="public/daterangepicker/daterangepicker.min.js"></script>
 
 
 <div class="modal fade" data-bs-focus="false" id="detail-modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
