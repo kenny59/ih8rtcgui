@@ -154,6 +154,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
         scrollX: true,
         processing: true,
         stateSave: true,
+        stateDuration: -1,
         fixedHeader: true,
         lengthMenu: [
             [5, 10, 25, 50, 100, -1],
@@ -456,8 +457,8 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                 '</ul>'
             })?.join('');
         }
-        let listGroupHeaders = ["Id", "Creator", "Creation date", "Summary", "Description", "Attachments", "Comments", "History"];
-        let listGroup = [d.id, await getValueFromRTCObject(d.creator, d), moment(d.creationDate).format(DATE_FORMAT), d.summary, d.formattedDescription, attachments, comments, history];
+        let listGroupHeaders = ["Id", "Creator", "Creation date", "Summary", "Description", "Comments", "Attachments", "History"];
+        let listGroup = [d.id, await getValueFromRTCObject(d.creator, d), moment(d.creationDate).format(DATE_FORMAT), d.summary, d.formattedDescription, comments, attachments, history];
         let spliceAtIndex = 4;
         for (let [k, v] of customAttributes) {
             let val = await getValueFromRTCObject(getArray(d, ['customAttributes']).filter(ca => ca.identifier === k)?.[0], d)

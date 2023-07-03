@@ -5,7 +5,7 @@ Simple GUI tool for managing RTC items in a more organized manner
 ![img.png](img.png)
 
 ## Features
-1. Query workitems by modified/created date and further filter in table (can be slow if there are too many workitems)
+1. Query workitems by modified/created date (before, after, between) and further filter in table
 2. Full-text search in table, dropdowns on columns where it makes sense
 3. Modify state and owner of workitem (right click)
 4. Add comment with basic formatting (bold, link)
