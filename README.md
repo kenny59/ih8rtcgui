@@ -3,6 +3,8 @@
 Simple GUI tool for managing RTC items in a more organized manner
 
 ![img.png](img.png)
+![img_1.png](img_1.png)
+![img_2.png](img_2.png)
 
 ## Features
 1. Query workitems by modified/created date (before, after, between) and further filter in table
