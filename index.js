@@ -27,6 +27,7 @@ let agent = new https.Agent({
 //TODO hide row (or just select differnt color)
 //TODO fix timezone incorrect
 //TODO remove filter when column is hidden
+//TODO search RTC number directly (use right top search maybe)
 
 //https://redacted_url:9443/jazz/rpt/repository/generic?fields=generic/com.ibm.team.process.TeamArea[projectArea/name=%22redacted%20(RTC)%22]/(contributors/name)
 //https://jazz.net/sandbox01-ccm/oslc/users?oslc.where=foaf:name="Tibor*"}&oslc.prefix=foaf=<http://xmlns.com/foaf/0.1/>&oslc.select=foaf:name

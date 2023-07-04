@@ -9,7 +9,7 @@ Simple GUI tool for managing RTC items in a more organized manner
 2. Full-text search in table, dropdowns on columns where it makes sense
 3. Modify state and owner of workitem (right click)
 4. Add comment with basic formatting (bold, link)
-5. Automatic refresh (1 minute, 5 minutes etc)
+5. Automatic refresh (1 minute, 5 minutes etc) (it doesn't refresh if there is a workitem opened)
 6. See details of workitem without having to open new page
 
 ## Installation
