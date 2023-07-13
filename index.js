@@ -580,7 +580,9 @@ class ConditionBuilder {
 }
 async function modifyState(id, actionId, userId, comment) {
     let modifyStateUrl = `${store.get("config.baseUrl")}/oslc/workitems/${id}`;
-    if(actionId) modifyStateUrl += `?_action=${actionId}`;
+    let modifyStateOwnerUrl = modifyStateUrl;
+    let modifyStateCommentUrl = modifyStateUrl;
+    if(actionId) modifyStateOwnerUrl += `?_action=${actionId}`;
     let body = {};
     if(userId) {
         body = {
@@ -588,12 +590,12 @@ async function modifyState(id, actionId, userId, comment) {
         }
     }
     if(userId || actionId) {
-        await sendData(modifyStateUrl, 'PUT', body);
+        await sendData(modifyStateOwnerUrl, 'PUT', body);
     }
     if(comment && comment.replace(/\s/g, '').length) {
         let commentBody = {
             "dc:description": comment.replace("\n", "<br>")
         }
-        await sendData(`${modifyStateUrl}/rtc_cm:comments`, 'POST', commentBody);
+        await sendData(`${modifyStateCommentUrl}/rtc_cm:comments`, 'POST', commentBody);
     }
 }
