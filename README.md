@@ -18,7 +18,7 @@ Disclaimer: This project is not intended as a full replacement of the original R
 7. Auto updater
 
 ## Installation
-1. Download installer from `[Releases](https://github.com/kenny59/ih8rtcgui/releases)`
+1. Download installer from [Releases](https://github.com/kenny59/ih8rtcgui/releases)
 2. Install it (have a coffee/tea/energy drink in the meantime, it may take a few minutes to install), it will automatically open the app after install
 3. Click on "Open configs" and fill details (this is mandatory). Click save afterwards
 4. Login using your credentials (select save credentials if you don't want to enter it every time)
