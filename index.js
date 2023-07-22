@@ -10,7 +10,7 @@ const moment = require('moment-timezone')
 const Store = require('electron-store');
 const _ = require("lodash")
 const getArray = require("./utils");
-
+const { autoUpdater } = require('electron-updater');
 let tokensNeeded = ['LtpaToken2', 'JSESSIONID'];
 let cookiesList = [];
 
@@ -174,6 +174,24 @@ function createWindow () {
         }
     })
 
+    autoUpdater.on('error', e => {
+        // This gets called when an error occurs but it doesn't count as
+        // the rejection getting handled
+        console.error('Failed to check for updates');
+        console.error(e);
+    });
+
+    autoUpdater.checkForUpdates().catch(e => {
+        // This does not get called when a download error occurs
+        console.error('Failed to check for updates');
+        console.error(e);
+    });
+
+
+    win.once('ready-to-show', () => {
+        autoUpdater.checkForUpdatesAndNotify();
+    });
+
     win.webContents.on('will-navigate', (event, url) => {
         event.preventDefault();
         require("electron").shell.openExternal(url);
@@ -212,7 +230,8 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
-        app.quit()
+        app.quit();
+        app.exit(0);
     }
 })
 
