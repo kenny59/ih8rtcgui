@@ -150,9 +150,14 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
     let firstLoad = true;
 
     let table = $('#workitem-list').DataTable({
-        scrollY: true,
+        scrollResize: true,
+        scrollY: 100,
         scrollX: true,
+        scrollCollapse: true,
+        lengthChange: true,
         processing: true,
+        paging: true,
+        responsive: false,
         stateSave: true,
         stateDuration: -1,
         fixedHeader: true,
@@ -176,13 +181,19 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                 table.columns().every((col) => {
                     let that = table.column(col);
                     if(!DROPDOWN_COLUMNS.includes(that.header().textContent)) return;
-                    var select = $('<select class="form-select"><option value="">-</option></select>')
-                        .appendTo($(that.footer()).empty())
-                        .on('change', function () {
-                            var val = $.fn.dataTable.util.escapeRegex($(this).val());
+                    var select = $('<select class="form-select js-example-basic-multiple" multiple="multiple"><option value="">-</option></select>');
+                    select.appendTo($(that.footer()).empty())
+                    .on('change', function () {
+                        if($(this).val().includes("")) $(this).val(_.pull($(this).val(), ''));
+                        let val = $(this).val().map(user => $.fn.dataTable.util.escapeRegex(user)).join("|")
 
-                            that.search(val ? '^' + val + '$' : '', true, false).draw();
-                        });
+                        that.search(val ? '^(' + val + ')$' : '', true, false).draw();
+                    });
+
+                    select.select2({
+                        multiple: true,
+                        closeOnSelect: false
+                    })
 
                     let selected = table.column(that).search();
                     if(selected) {
@@ -208,12 +219,13 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
         columns: [
             {   data: 'id',
                 width: 120,
-                className: 'dt-control fs-5'
+                defaultContent: '',
+                className: 'dt-control'
             },
             { data: 'state.name', width: 120 },
-            { data: 'summary', width: 400, className: 'wrap_everything' },
-            { data: 'owner.name', width: 300, className: 'wrap_everything' },
-            { data: 'modified', width: 300, type: 'date', render: function (data, type, row, meta) {
+            { data: 'summary', width: 500, className: 'wrap_everything' },
+            { data: 'owner.name', width: 200, className: 'wrap_everything' },
+            { data: 'modified', width: 200, type: 'date', render: function (data, type, row, meta) {
                     return moment(data).format(DATE_FORMAT);
                 }},
             { data: 'subscriptions', width: 300, className: 'wrap_everything', render: (data, type, row, meta) => {
@@ -245,6 +257,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
         },
         stateLoaded: (settings, data) => {
             $("#column-visibility").select2({
+                multiple: true,
                 closeOnSelect: false,
                 data: $('#workitem-list').DataTable().columns()[0].map(column => {
                     let col = $('#workitem-list').DataTable().column(column);
