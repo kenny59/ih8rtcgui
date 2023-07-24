@@ -3,7 +3,7 @@
     <title>ih8rtcgui tool</title>
     <base href="./../../">
     <link href="public/bootstrap/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" charset="utf-8" >
-    <link href="public/font-awesome/css/all.min.css" rel="stylesheet" type="text/css" charset="utf-8">
+    <link href="public/font-awesome/css/all.css" rel="stylesheet" type="text/css" charset="utf-8">
     <link href="public/datatables/datatables.min.css" rel="stylesheet" charset="utf-8"/>
     <link href="public/datatables/jquery.contextMenu.min.css" rel="stylesheet">
     <link href="public/jquery/select2.min.css" rel="stylesheet" />
@@ -13,7 +13,7 @@
     <link href="pages/main/main.css" rel="stylesheet" charset="utf-8" />
 </head>
 <body>
-<div class="container-fluid">
+<div class="container-fluid d-flex flex-column min-vh-100" style="max-height: 100vh">
     <div class="row">
         <div class="col-md-4">
             <div class="form-floating">
@@ -89,39 +89,45 @@
 
     <hr class="hr" />
 
-    <table class="table nowrap" id="workitem-list" style="width: 100%; min-width: 1024px; white-space: normal; word-wrap: break-word;">
-        <thead>
-        <tr>
-            <th scope="col">RTC #</th>
-            <th scope="col">State</th>
-            <th scope="col">Summary</th>
-            <th scope="col">Owner</th>
-            <th scope="col">Modified Date</th>
-            <th scope="col">Subscribers</th>
-            <th scope="col">Tags</th>
-        </tr>
-        </thead>
-        <tbody>
+    <div class="row flex-grow-1 flex-shrink-1 d-flex flex-column">
+        <div style="min-height: 0; flex: 1 1 0;">
+        <table class="table display nowrap" id="workitem-list" style="width: 100%; min-width: 1024px; white-space: normal; word-wrap: break-word;">
+            <thead>
+            <tr>
+                <th scope="col">RTC #</th>
+                <th scope="col">State</th>
+                <th scope="col">Summary</th>
+                <th scope="col">Owner</th>
+                <th scope="col">Modified Date</th>
+                <th scope="col">Subscribers</th>
+                <th scope="col">Tags</th>
+            </tr>
+            </thead>
+            <tbody>
 
-        </tbody>
-        <tfoot>
-        <tr>
-            <th scope="col">RTC #</th>
-            <th scope="col">State</th>
-            <th scope="col">Summary</th>
-            <th scope="col">Owner</th>
-            <th scope="col">Modified Date</th>
-            <th scope="col">Subscribers</th>
-            <th scope="col">Tags</th>
-        </tr>
-        </tfoot>
-    </table>
+            </tbody>
+            <tfoot>
+            <tr>
+                <th scope="col">RTC #</th>
+                <th scope="col">State</th>
+                <th scope="col">Summary</th>
+                <th scope="col">Owner</th>
+                <th scope="col">Modified Date</th>
+                <th scope="col">Subscribers</th>
+                <th scope="col">Tags</th>
+            </tr>
+            </tfoot>
+        </table>
+        </div>
+
+    </div>
 </div>
 
 
 <script src="public/jquery/jquery-3.3.1.slim.min.js" crossorigin="anonymous"></script>
 <script src="public/bootstrap/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 <script src="public/datatables/datatables.min.js"></script>
+<script src="public/datatables/dataTables.scrollResize.js"></script>
 <script src="public/datatables/jquery.contextMenu.min.js"></script>
 <script src="public/datatables/jquery.ui.position.js"></script>
 <script src="public/jquery/select2.js"></script>
