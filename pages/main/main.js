@@ -5,6 +5,8 @@ const diffMatchPatch = require('diff-match-patch');
 const _ = require("lodash")
 const DOMPurify = require('dompurify');
 const getArray = require("../../utils");
+const select2 = require('../../public/jquery/select2.js')
+select2(window, $)
 
 let projectArea = $("#project-area");
 let date = $("#date");
@@ -180,55 +182,58 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                 $('#lastUpdatedAt').html(moment(new Date()).format(DATE_FORMAT))
                 table.columns().every((col) => {
                     let that = table.column(col);
-                    if(!DROPDOWN_COLUMNS.includes(that.header().textContent)) return;
-                    var select = $('<select class="form-select js-example-basic-multiple" multiple="multiple"><option value="">-</option></select>');
-                    select.appendTo($(that.footer()).empty())
+                    if(!DROPDOWN_COLUMNS.includes(that.header().textContent)) {
+                        $(that.footer()).find('input').val(that.search());
+                        return;
+                    }
+                    var select = $('<select class="form-select" multiple="multiple"></select>');
+                    let footer = $(that.footer());
+                    select.appendTo(footer.empty())
                     .on('change', function () {
                         if($(this).val().includes("")) $(this).val(_.pull($(this).val(), ''));
                         let val = $(this).val().map(user => $.fn.dataTable.util.escapeRegex(user)).join("|")
 
                         that.search(val ? '^(' + val + ')$' : '', true, false).draw();
                     });
-
                     select.select2({
                         multiple: true,
-                        closeOnSelect: false
+                        closeOnSelect: false,
+                        width: '100%'
                     })
 
                     let selected = table.column(that).search();
-                    if(selected) {
-                        let contains = false;
-                        that.data().unique().each((d,j) => {if(`^${d}$` === selected) contains = true});
-                        if(!contains) {
-                            that.search('', true, false).draw();
-                            select.val('');
-                        }
-                    }
+                    let selectedList = [];
                     that
                         .data()
                         .unique()
                         .sort()
                         .each(function (d, j) {
                             let isSelected = '';
-                            if(selected === `^${d}$`) isSelected = 'selected';
+                            if(selected.split('|').filter(e => e).some(s => s.indexOf(d) > -1)) {
+                                isSelected = 'selected';
+                                selectedList.push(d);
+                            }
                             select.append('<option value="' + d + '"' + isSelected + '>' + d + '</option>');
                         });
+                    table.column(that).search(selectedList.join('|') ? '^(' + selectedList.join('|') + ')$' : '', true, false).draw()
                 })
+            }).then(() => {
+                table.columns.adjust();
             })
         },
         columns: [
             {   data: 'id',
-                width: 120,
+                width: '5%',
                 defaultContent: '',
                 className: 'dt-control'
             },
-            { data: 'state.name', width: 120 },
-            { data: 'summary', width: 500, className: 'wrap_everything' },
-            { data: 'owner.name', width: 200, className: 'wrap_everything' },
-            { data: 'modified', width: 200, type: 'date', render: function (data, type, row, meta) {
+            { data: 'state.name', width: '10%' },
+            { data: 'summary', width: '35%', className: 'wrap_everything' },
+            { data: 'owner.name', width: '10%', className: 'wrap_everything' },
+            { data: 'modified', width: '5%', type: 'date', render: function (data, type, row, meta) {
                     return moment(data).format(DATE_FORMAT);
                 }},
-            { data: 'subscriptions', width: 300, className: 'wrap_everything', render: (data, type, row, meta) => {
+            { data: 'subscriptions', width: '10%', className: 'wrap_everything', render: (data, type, row, meta) => {
                     return Array.isArray(data) ? data?.map(d => d.name).join(", ") : data?.name
                 }},
             { data: 'tags', className: 'wrap_everything', render: (data, type, row, meta) => {
@@ -257,6 +262,8 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
         },
         stateLoaded: (settings, data) => {
             $("#column-visibility").select2({
+                width: "resolve",
+                tags: true,
                 multiple: true,
                 closeOnSelect: false,
                 data: $('#workitem-list').DataTable().columns()[0].map(column => {
