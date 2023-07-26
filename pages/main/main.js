@@ -198,7 +198,9 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                     select.select2({
                         multiple: true,
                         closeOnSelect: false,
-                        width: '100%'
+                        width: '100%',
+                        placeholder: that.header().textContent,
+                        allowClear: true
                     })
 
                     let selected = table.column(that).search();
@@ -233,7 +235,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
             { data: 'modified', width: '5%', type: 'date', render: function (data, type, row, meta) {
                     return moment(data).format(DATE_FORMAT);
                 }},
-            { data: 'subscriptions', width: '10%', className: 'wrap_everything', render: (data, type, row, meta) => {
+            { data: 'subscriptions', width: '15%', className: 'wrap_everything', render: (data, type, row, meta) => {
                     return Array.isArray(data) ? data?.map(d => d.name).join(", ") : data?.name
                 }},
             { data: 'tags', className: 'wrap_everything', render: (data, type, row, meta) => {
