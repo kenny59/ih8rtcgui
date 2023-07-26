@@ -22,6 +22,7 @@ let agent = new https.Agent({
 
 //TODO refactor
 //TODO open details in new page?
+//TODO after modify filters are deleted
 //TODO check state before updating if it has not been updated since
 //TODO use constants instead of text
 //TODO hide row (or just select differnt color)

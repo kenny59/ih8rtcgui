@@ -53,9 +53,9 @@
         </div>
     </div>
 
-    <hr class="hr" />
+    <hr class="hr" data-bs-toggle="collapse" href="#details-row" aria-controls="details-row"/>
 
-    <div class="row">
+    <div class="row" id="details-row">
         <div class="col-md-2 align-self-center" style="font-size: 0.8em;">
             <div id="close-all-details">
                 Close all details
@@ -64,7 +64,7 @@
         </div>
         <div class="col-md-4">
             <label for="column-visibility">Column visibility</label>
-            <select multiple id="column-visibility"></select>
+            <select multiple id="column-visibility" data-size="1"></select>
         </div>
         <div class="col-md-1 align-self-center text-end" style="font-size: 0.8em;">
             Last updated at:
@@ -124,7 +124,7 @@
 </div>
 
 
-<script src="public/jquery/jquery-3.3.1.slim.min.js" crossorigin="anonymous"></script>
+<script src="public/jquery/jquery.min.js" crossorigin="anonymous"></script>
 <script src="public/bootstrap/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 <script src="public/datatables/datatables.min.js"></script>
 <script src="public/datatables/dataTables.scrollResize.js"></script>

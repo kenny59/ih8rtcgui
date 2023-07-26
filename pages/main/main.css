@@ -11,7 +11,7 @@ body {
     }
 }
 
-ul, .wrap_everything {
+ul.list-group, .wrap_everything {
     white-space: normal !important;
 }
 
@@ -55,6 +55,20 @@ div.resizable {
     width: 100%;
 }
 
+.select2-selection{
+    overflow-y:auto;
+    white-space:nowrap;
+}
+
+ul.select2-selection__rendered{
+    white-space: nowrap;
+}
+
+.select2-container--default {
+    display: table!important;
+    table-layout: fixed!important;
+}
+
 table.dataTable td.dt-control:before {
     content: '\f103';
     font-family: 'Font Awesome\ 6 Free';
@@ -70,5 +84,4 @@ table.dataTable tr.shown td.dt-control:before {
     cursor: pointer;
     font-size: 22px;
     color: #55a4be;
-
 }
