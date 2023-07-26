@@ -60,6 +60,12 @@ div.resizable {
     white-space:nowrap;
 }
 
+.select2-selection__clear {
+    position: relative !important;
+    top: 0px;
+    left: 0px;
+}
+
 ul.select2-selection__rendered{
     white-space: nowrap;
 }
