@@ -264,7 +264,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
         },
         stateLoaded: (settings, data) => {
             $("#column-visibility").select2({
-                width: "resolve",
+                width: "100%",
                 tags: true,
                 multiple: true,
                 closeOnSelect: false,
