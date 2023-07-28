@@ -459,6 +459,9 @@ async function getData(url, overrideStatus = false, customHeader = {}) {
     let workitems = await fetch(url, {
         agent: agent,
         headers: inputHeaders
+    }).catch(err => {
+        console.log(err);
+        return null;
     });
     if(workitems.status === 500) return null;
     let headers = workitems.headers;
