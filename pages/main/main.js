@@ -157,7 +157,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
         scrollX: true,
         scrollCollapse: true,
         lengthChange: true,
-        processing: true,
+        processing: false,
         paging: true,
         responsive: false,
         stateSave: true,
@@ -178,6 +178,12 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
             }
             ipcRenderer.invoke("loadWorkItems", projectArea.val(), date.data('daterangepicker').startDate.format(DATE_FORMAT), date.data('daterangepicker').endDate.format(DATE_FORMAT), filterBy.val(), filterType.val())
                 .then(value => {
+                if(!value) {
+                    $('#main-toast-body').text('Network error, please check your proxy or internet connection');
+                    new bootstrap.Toast($('.toast')).show();
+                    cb({'data': []});
+                    return;
+                }
                 cb({'data': value});
                 $('#lastUpdatedAt').html(moment(new Date()).format(DATE_FORMAT))
                 table.columns().every((col) => {
@@ -218,7 +224,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                             select.append('<option value="' + d + '"' + isSelected + '>' + d + '</option>');
                         });
                     table.column(that).search(selectedList.join('|') ? '^(' + selectedList.join('|') + ')$' : '', true, false).draw()
-                })
+                });
             }).then(() => {
                 table.columns.adjust();
             })
@@ -527,6 +533,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
             if(!data) {
                 $('#main-toast-body').text('Network error, please check your proxy or internet connection');
                 new bootstrap.Toast($('.toast')).show();
+                $(this).removeClass('spinner-grow');
             }
 
             row.child(await format(data), 'detail-size').show();
@@ -557,8 +564,10 @@ function reloadDataTable() {
         $('#overlay').fadeOut();
         return;
     }
-    $('#workitem-list').DataTable().ajax.reload();
-    $('#overlay').fadeOut();
+    $('#workitem-list').DataTable().ajax.reload(() => {
+        $('#overlay').fadeOut();
+    });
+
 }
 
 $('#team-area-selector-button').click(() => {
