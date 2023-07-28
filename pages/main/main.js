@@ -524,6 +524,11 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
             // Open this row
             let data = await ipcRenderer.invoke("loadWorkItemData", row.data().id);
 
+            if(!data) {
+                $('#main-toast-body').text('Network error, please check your proxy or internet connection');
+                new bootstrap.Toast($('.toast')).show();
+            }
+
             row.child(await format(data), 'detail-size').show();
             tr.addClass('shown');
             $(this).removeClass('spinner-grow');
