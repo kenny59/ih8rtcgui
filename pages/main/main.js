@@ -13,6 +13,13 @@ let date = $("#date");
 let filterBy = $('#filter-by');
 let filterType = $('#filter-type');
 
+const SearchSource = {
+    SEARCH_BAR: 1,
+    GOTO: 2
+}
+
+let searchSource = SearchSource.SEARCH_BAR;
+
 let daterangepickeroptions = {
     autoUpdateInput: true,
     locale: {
@@ -163,6 +170,12 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
         stateSave: true,
         stateDuration: -1,
         fixedHeader: true,
+        dom: 'lBr<"goto">tip',
+        buttons: [
+            { extend: 'copy', className: 'btn' },
+            { extend: 'csv', className: 'btn' },
+            { extend: 'excel', className: 'btn' }
+        ],
         lengthMenu: [
             [5, 10, 25, 50, 100, -1],
             [5, 10, 25, 50, 100, 'All'],
@@ -170,13 +183,23 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
         language: {
             processing: '<i class="fa fa-spinner fa-spin fa-3x fa-fw"></i>Processing...',
         },
-        ajax: (d, cb) => {
+        ajax: (data, cb) => {
             if(firstLoad) {
                 firstLoad = false;
                 cb({'data': []});
                 return;
             }
-            ipcRenderer.invoke("loadWorkItems", projectArea.val(), date.data('daterangepicker').startDate.format(DATE_FORMAT), date.data('daterangepicker').endDate.format(DATE_FORMAT), filterBy.val(), filterType.val())
+            let additionalData;
+            let gotoElement = $('#goto');
+            if(searchSource === SearchSource.GOTO && gotoElement.val()) {
+                additionalData = {
+                    filterBy: "id",
+                    filterType: "=",
+                    filterData: gotoElement.val()
+                };
+            }
+
+            ipcRenderer.invoke("loadWorkItems", projectArea.val(), date.data('daterangepicker').startDate.format(DATE_FORMAT), date.data('daterangepicker').endDate.format(DATE_FORMAT), filterBy.val(), filterType.val(), additionalData)
                 .then(value => {
                 if(!value) {
                     $('#main-toast-body').text('Network error, please check your proxy or internet connection');
@@ -261,6 +284,11 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                         }
                     });
                 });
+            $("div.goto").html('<div class="input-group mb-2"><input type="text" id="goto" class="form-control" placeholder="#RTC"><button class="btn btn-primary" id="gotoButton" type="button" aria-describedby="goto">Go</button></div>');
+            $('#gotoButton').click(() => {
+                searchSource = SearchSource.GOTO;
+                reloadDataTable();
+            })
         },
         stateSaveCallback: function(settings,data,) {
             ipcRenderer.invoke("saveDataTables", data);
@@ -297,6 +325,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
             }
         }
     });
+
     $(function() {
         $.contextMenu({
             selector: 'tr.odd > td,tr.even > td',
@@ -326,7 +355,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
             },
             items: {
                 "copy": {name: "Copy cell value", icon: "fa-copy"},
-                "modify": {name: "Modify row", icon: "fa-edit"},
+                "modify": {name: "Modify row", icon: "fa-edit"}
             }
         })
     });
@@ -547,7 +576,6 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
     $('#overlay').fadeOut();
 })();
 
-
 $('tfoot th').each(function () {
     var title = $(this).text();
     if(DROPDOWN_COLUMNS.includes(title)) {
@@ -571,6 +599,7 @@ function reloadDataTable() {
 }
 
 $('#team-area-selector-button').click(() => {
+    searchSource = SearchSource.SEARCH_BAR;
     reloadDataTable();
 });
 
