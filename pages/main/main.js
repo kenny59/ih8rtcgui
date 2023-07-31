@@ -191,7 +191,7 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
             }
             let additionalData;
             let gotoElement = $('#goto');
-            if(searchSource === SearchSource.GOTO && gotoElement.val()) {
+            if(searchSource === SearchSource.GOTO && gotoElement.val() && gotoElement.val().trim() ) {
                 additionalData = {
                     filterBy: "id",
                     filterType: "=",
