@@ -242,24 +242,49 @@ ipcMain.handle("getDefaultValues", (event) => {
     return store.get("config");
 })
 
-ipcMain.handle("loadWorkItems", async (event, projectArea, startDateString, endDateString, filterBy, filterType) => {
+ipcMain.handle("loadWorkItems", async (event, projectArea, startDateString, endDateString, filterBy, filterType, additionalData) => {
     store.set("config.history.lastProjectArea", projectArea);
     store.set("config.history.lastStartDate", startDateString);
     store.set("config.history.lastEndDate", endDateString);
     store.set("config.history.lastFilterBy", filterBy);
     store.set("config.history.lastFilterType", filterType);
 
-    let filters = [`projectArea/name='${projectArea}'`];
+    let andFilters = [`projectArea/name='${projectArea}'`];
+    let orFilters = [];
     //let tagFilters = tag.split(",").map(t => `tags=|${t}|`).join(" or ");
-    [{date: moment(startDateString), operator: ">"}, {date: moment(endDateString), operator: "<"}].forEach(date => {
-        if(filterType !== date.operator && filterType !== "!!") return;
-        const dateMoment = moment(date.date).utc(true).format("YYYY-MM-DDTHH:mm:ss.SSSZZ").replace("+", "-")
-        filters.push(`${filterBy}${date.operator}${dateMoment}`);
-    })
+    let andFilterList = [];
+    let orFilterList = [];
+    if(additionalData) {
+        orFilterList.push({
+            data: additionalData.filterData,
+            operator: additionalData.filterType,
+            filterBy: additionalData.filterBy
+        });
+        orFilterList.forEach(data => {
+            orFilters.push(`${data.filterBy}${data.operator}${data.data}`);
+        })
+    } else {
+        andFilterList.push({
+            data: moment(startDateString).utc(true).format("YYYY-MM-DDTHH:mm:ss.SSSZZ").replace("+", "-"),
+            operator: ">",
+            filterBy: filterBy
+        })
+        andFilterList.push({
+            data: moment(endDateString).utc(true).format("YYYY-MM-DDTHH:mm:ss.SSSZZ").replace("+", "-"),
+            operator: "<",
+            filterBy: filterBy
+        })
+        andFilterList.forEach(data => {
+            if(filterType !== data.operator && filterType !== "!!") return;
+            andFilters.push(`${data.filterBy}${data.operator}${data.data}`);
+        })
+    }
     //filters.push(tagFilters);
     let size = 5;
     let pos = 0;
-    let workItemsUrl = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[${filters.join(" and ")}]/(id|summary|state/name|modified|owner/name|tags|subscriptions/name|state/workflow/id|state/name)`
+    let filterString = andFilters.join(" and ");
+    if(orFilters && orFilters.length > 0) filterString += " and " + orFilters.join(" or ");
+    let workItemsUrl = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[${filterString}]/(id|summary|state/name|modified|owner/name|tags|subscriptions/name|state/workflow/id|state/name)`
     allDataList = [];
     let text = await recursivelyCheckAllRemainingData(workItemsUrl, ['workitem', 'workItem']);
     allDataList = text;
@@ -277,6 +302,7 @@ async function login(username, password) {
     myHeaders.append("Host", `${url.host}`);
     myHeaders.append("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
     myHeaders.append("Origin", `${url.protocol}//${url.host}`);
+    myHeaders.append("JazzFormAuth", "Form")
 
     var requestOptions = {
         agent: new https.Agent({
@@ -291,7 +317,7 @@ async function login(username, password) {
         redirect: 'manual'
     };
 
-    let response1 = await fetch(store.get("config.baseUrl") + "/j_security_check", requestOptions);
+    let response1 = await fetch(store.get("config.baseUrl") + "/auth/j_security_check", requestOptions);
     if(!response1.headers.get('set-cookie')) {
         return [];
     }
@@ -302,13 +328,16 @@ async function login(username, password) {
     myHeaders.append("Cookie", cookiesList.join(";"));
 
 
-    let response2 = await fetch(store.get("config.baseUrl") + "/j_security_check", requestOptions);
+    let response2 = await fetch(store.get("config.baseUrl") + "", requestOptions);
     let authreq = response2.headers.get('x-com-ibm-team-repository-web-auth-msg');
     if(authreq !== null || response2.status !== 200) {
         console.log('Unsuccessful auth');
         return [];
     }
-    cookiesList.push(response2.headers.get('set-cookie').split(';')[0]);
+    let extraCookies = response2.headers.get('set-cookie')?.split(';')[0];
+    if(extraCookies) {
+        cookiesList.push(extraCookies);
+    }
 
     return cookiesList;
 }

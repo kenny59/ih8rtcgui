@@ -91,3 +91,12 @@ table.dataTable tr.shown td.dt-control:before {
     font-size: 22px;
     color: #55a4be;
 }
+
+div.goto {
+    display: inline-block;
+    float: right;
+}
+
+div.dataTables_length {
+    margin-right: 1em;
+}
