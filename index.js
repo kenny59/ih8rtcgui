@@ -261,7 +261,9 @@ ipcMain.handle("loadWorkItems", async (event, projectArea, startDateString, endD
             filterBy: additionalData.filterBy
         });
         orFilterList.forEach(data => {
-            orFilters.push(`${data.filterBy}${data.operator}${data.data}`);
+            data.data.split(",").forEach(d => {
+                orFilters.push(`${data.filterBy}${data.operator}${d}`);
+            })
         })
     } else {
         andFilterList.push({
