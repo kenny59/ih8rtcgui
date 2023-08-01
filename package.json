@@ -8,7 +8,7 @@
     "start": "electron .",
     "build": "electron-builder build --win --publish never",
     "deploy": "electron-builder build --win --publish always",
-    "build-all": "electron-builder build -m tar.xz -w -l deb --publish never"
+    "build-all": "electron-builder build -m tar.xz -w --publish never"
   },
   "private": false,
   "build": {
