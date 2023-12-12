@@ -258,16 +258,16 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
                 defaultContent: '',
                 className: 'dt-control'
             },
-            { data: 'state.name', width: '10%' },
-            { data: 'summary', width: '35%', className: 'wrap_everything' },
-            { data: 'owner.name', width: '10%', className: 'wrap_everything' },
-            { data: 'modified', width: '5%', type: 'date', render: function (data, type, row, meta) {
+            { data: 'state.name', defaultContent: '', width: '10%' },
+            { data: 'summary', defaultContent: '', width: '35%', className: 'wrap_everything' },
+            { data: 'owner.name', defaultContent: '', width: '10%', className: 'wrap_everything' },
+            { data: 'modified', defaultContent: '', width: '5%', type: 'date', render: function (data, type, row, meta) {
                     return moment(data).format(DATE_FORMAT);
                 }},
-            { data: 'subscriptions', width: '15%', className: 'wrap_everything', render: (data, type, row, meta) => {
+            { data: 'subscriptions', defaultContent: '', width: '15%', className: 'wrap_everything', render: (data, type, row, meta) => {
                     return Array.isArray(data) ? data?.map(d => d.name).join(", ") : data?.name
                 }},
-            { data: 'tags', className: 'wrap_everything', render: (data, type, row, meta) => {
+            { data: 'tags', defaultContent: '', className: 'wrap_everything', render: (data, type, row, meta) => {
                     return data?.split("|").filter(e => e).join(", ")
             }}
         ],
