@@ -341,7 +341,6 @@ async function login(username, password) {
     if(extraCookies) {
         cookiesList.push(extraCookies);
     }
-    response2.status !== 200
     return cookiesList;
 }
 
