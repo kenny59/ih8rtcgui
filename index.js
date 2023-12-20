@@ -319,7 +319,7 @@ async function login(username, password) {
         redirect: 'manual'
     };
 
-    let response1 = await fetch(store.get("config.baseUrl") + "/auth/j_security_check", requestOptions);
+    let response1 = await fetch(store.get("config.baseUrl") + "/j_security_check", requestOptions);
     if(!response1.headers.get('set-cookie')) {
         return [];
     }
@@ -328,9 +328,10 @@ async function login(username, password) {
 
     requestOptions.redirect = 'follow';
     myHeaders.append("Cookie", cookiesList.join(";"));
+    requestOptions.headers = myHeaders;
 
 
-    let response2 = await fetch(store.get("config.baseUrl") + "", requestOptions);
+    let response2 = await fetch(store.get("config.baseUrl") + "/j_security_check", requestOptions);
     let authreq = response2.headers.get('x-com-ibm-team-repository-web-auth-msg');
     if(authreq !== null || response2.status !== 200) {
         console.log('Unsuccessful auth');
@@ -340,7 +341,7 @@ async function login(username, password) {
     if(extraCookies) {
         cookiesList.push(extraCookies);
     }
-
+    response2.status !== 200
     return cookiesList;
 }
 
