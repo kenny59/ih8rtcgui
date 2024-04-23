@@ -622,7 +622,7 @@ $('#detail-save-button').click(() => {
     let idVal = $('#detail-id').html();
     ipcRenderer.invoke("modifyState", idVal, stateVal, userVal, commentVal).then(() => {
         reloadDataTable();
-        $('#detail-comment').trumbowyg('empty');
+        initDetailComment();
     })
     $('#detail-modal').modal('hide');
 });
@@ -647,13 +647,17 @@ $('#detail-user').select2({
     dropdownParent: $('#detail-modal'),
     theme: "bootstrap-5"
 });
-$('#detail-comment').trumbowyg({
-    btns: [['strong'], ['historyUndo', 'historyRedo'], ['link']],
-    autogrow: false,
-    autogrowOnEnter: false,
-    minimalLinks: true,
-    removeformatPasted: true
-})
+
+function initDetailComment() {
+    $('#detail-comment').trumbowyg({
+        btns: [['strong'], ['historyUndo', 'historyRedo'], ['link']],
+        autogrow: false,
+        autogrowOnEnter: false,
+        minimalLinks: true,
+        removeformatPasted: true
+    })
+}
+initDetailComment();
 
 $('#detail-user')
     .parent('div')

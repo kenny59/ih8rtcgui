@@ -300,9 +300,10 @@ async function login(username, password) {
     let cookiesList = [];
     var myHeaders = new Headers();
     let url = new URL(store.get("config.baseUrl"));
-    myHeaders.append("Referer", `${store.get("config.baseUrl")}/auth/authrequired`);
+    myHeaders.append("Referer", `${store.get("config.baseUrl")}/authenticated/identity`);
     myHeaders.append("Host", `${url.host}`);
-    myHeaders.append("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+    //myHeaders.append("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+    myHeaders.append("Content-Type", "text/xml");
     myHeaders.append("Origin", `${url.protocol}//${url.host}`);
     myHeaders.append("JazzFormAuth", "Form")
 
@@ -319,28 +320,41 @@ async function login(username, password) {
         redirect: 'manual'
     };
 
-    let response1 = await fetch(store.get("config.baseUrl") + "/j_security_check", requestOptions);
-    if(!response1.headers.get('set-cookie')) {
+    let identityResponse = await fetch(store.get("config.baseUrl") + "/authenticated/identity", requestOptions);
+    if(!identityResponse.headers.get('set-cookie')) {
         return [];
     }
-    cookiesList.push(...response1?.headers?.raw()?.["set-cookie"]?.map(c => c.split(";")[0]));
+    cookiesList.push(...identityResponse?.headers?.raw()?.["set-cookie"]?.map(c => c.split(";")[0]));
 
 
-    requestOptions.redirect = 'follow';
+    requestOptions.redirect = 'manual';
+    myHeaders.set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
     myHeaders.append("Cookie", cookiesList.join(";"));
     requestOptions.headers = myHeaders;
 
+    let firstSecurityCheckResponse = await fetch(store.get("config.baseUrl") + "/auth/j_security_check", requestOptions);
+    if(!firstSecurityCheckResponse.headers.get('set-cookie')) {
+        return [];
+    }
 
-    let response2 = await fetch(store.get("config.baseUrl") + "/j_security_check", requestOptions);
-    let authreq = response2.headers.get('x-com-ibm-team-repository-web-auth-msg');
-    if(authreq !== null || response2.status !== 200) {
+    cookiesList = [];
+    cookiesList.push(...firstSecurityCheckResponse?.headers?.raw()?.["set-cookie"]?.map(c => c.split(";")[0]));
+
+    requestOptions.redirect = 'follow';
+    myHeaders.append("Cookie", cookiesList.join(";"));
+
+    let secondSecurityCheckResponse = await fetch(store.get("config.baseUrl") + "/auth/j_security_check", requestOptions);
+    let authreq = secondSecurityCheckResponse.headers.get('x-com-ibm-team-repository-web-auth-msg');
+    if(authreq !== null || secondSecurityCheckResponse.status !== 200) {
         console.log('Unsuccessful auth');
         return [];
     }
-    let extraCookies = response2.headers.get('set-cookie')?.split(';')[0];
-    if(extraCookies) {
-        cookiesList.push(extraCookies);
+
+    let jsessionCookie = secondSecurityCheckResponse.headers.get("set-cookie")?.split(" ")?.find(c => c.startsWith("JSESSIONID"))?.replace(";", "");
+    if(jsessionCookie) {
+        cookiesList.push(jsessionCookie);
     }
+
     return cookiesList;
 }
 
