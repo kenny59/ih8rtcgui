@@ -12,7 +12,7 @@ const _ = require("lodash")
 const getArray = require("./utils");
 const { autoUpdater } = require('electron-updater');
 let tokensNeeded = ['LtpaToken2', 'JSESSIONID'];
-let cookiesList = [];
+let cookiesMap = new Map();
 
 const args = process.argv;
 
@@ -118,7 +118,7 @@ function createWindow () {
                             }
                             dialog.showMessageBox(options).then((response, checkboxChecked) => {
                                 if(response.response === 0) {
-                                    cookiesList = [];
+                                    cookiesMap.clear();
                                     store.set("config", defaultConfig);
                                     store.delete("user");
                                     store.delete("pass");
@@ -202,9 +202,10 @@ function createWindow () {
     cookies.on('changed', function(event, cookie, cause, removed) {
 
         if (tokensNeeded.includes(cookie.name) && cookie.session && !removed) {
-            cookiesList.push(cookie);
+            let [k,v] = cookie.split("=")
+            cookiesMap.set(k, v);
         }
-        if(cookiesList.length === tokensNeeded.length) {
+        if(cookiesMap.size < tokensNeeded.length) {
             //win.setSize(200, 400);
             win.loadFile("pages/main/main.html");
             win.setTitle("ih8rtcgui tool")
@@ -293,11 +294,28 @@ ipcMain.handle("loadWorkItems", async (event, projectArea, startDateString, endD
     return allDataList;
 });
 
+function addCookiesToCookiesMap(/** String[] */listOfCookies, specificCookiesMap) {
+    listOfCookies?.forEach(cookies => {
+        let [,k,v] = cookies.match(/(.*?)=(.*)/)
+        if(!specificCookiesMap) {
+            if(v) cookiesMap.set(k, v.split(";")[0]);
+        } else {
+            if(v) specificCookiesMap.set(k, v.split(";")[0]);
+        }
+    })
+}
+
+function getCookiesString(specificCookiesMap) {
+    let allowedCookies = ["JSESSIONID", "LtpaToken2", "WASReqURL", "Node-web"]
+    let cmap = specificCookiesMap || cookiesMap;
+    return [...cmap.entries()].filter((entry, index) => entry[1] && (!specificCookiesMap ? allowedCookies.includes(entry[0]) : true)).map((entry,index) => `${entry[0]}=${entry[1]}`).join(";");
+}
+
 /**
  * @returns string[]
  */
 async function login(username, password) {
-    let cookiesList = [];
+    let loginCookiesMap = new Map()
     var myHeaders = new Headers();
     let url = new URL(store.get("config.baseUrl"));
     myHeaders.append("Referer", `${store.get("config.baseUrl")}/authenticated/identity`);
@@ -306,6 +324,7 @@ async function login(username, password) {
     myHeaders.append("Content-Type", "text/xml");
     myHeaders.append("Origin", `${url.protocol}//${url.host}`);
     myHeaders.append("JazzFormAuth", "Form")
+    myHeaders.append("X-Requested-With","XMLHttpRequest")
 
     var requestOptions = {
         agent: new https.Agent({
@@ -322,40 +341,53 @@ async function login(username, password) {
 
     let identityResponse = await fetch(store.get("config.baseUrl") + "/authenticated/identity", requestOptions);
     if(!identityResponse.headers.get('set-cookie')) {
-        return [];
+        return new Map();
     }
-    cookiesList.push(...identityResponse?.headers?.raw()?.["set-cookie"]?.map(c => c.split(";")[0]));
-
+    addCookiesToCookiesMap(identityResponse?.headers?.raw()?.["set-cookie"], loginCookiesMap)
 
     requestOptions.redirect = 'manual';
     myHeaders.set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-    myHeaders.append("Cookie", cookiesList.join(";"));
+    myHeaders.set("Cookie", getCookiesString(loginCookiesMap));
     requestOptions.headers = myHeaders;
 
     let firstSecurityCheckResponse = await fetch(store.get("config.baseUrl") + "/auth/j_security_check", requestOptions);
     if(!firstSecurityCheckResponse.headers.get('set-cookie')) {
-        return [];
+        return new Map();
     }
 
-    cookiesList = [];
-    cookiesList.push(...firstSecurityCheckResponse?.headers?.raw()?.["set-cookie"]?.map(c => c.split(";")[0]));
-
+    addCookiesToCookiesMap(firstSecurityCheckResponse?.headers?.raw()?.["set-cookie"], loginCookiesMap);
     requestOptions.redirect = 'follow';
-    myHeaders.append("Cookie", cookiesList.join(";"));
+    myHeaders.set("Cookie", getCookiesString(loginCookiesMap));
+    requestOptions.headers = myHeaders;
 
     let secondSecurityCheckResponse = await fetch(store.get("config.baseUrl") + "/auth/j_security_check", requestOptions);
     let authreq = secondSecurityCheckResponse.headers.get('x-com-ibm-team-repository-web-auth-msg');
     if(authreq !== null || secondSecurityCheckResponse.status !== 200) {
         console.log('Unsuccessful auth');
-        return [];
+        return new Map();
     }
 
-    let jsessionCookie = secondSecurityCheckResponse.headers.get("set-cookie")?.split(" ")?.find(c => c.startsWith("JSESSIONID"))?.replace(";", "");
+    addCookiesToCookiesMap(secondSecurityCheckResponse?.headers?.raw()?.["set-cookie"], loginCookiesMap);
+    requestOptions.redirect = 'manual';
+    requestOptions.method = "GET"
+    requestOptions.body = undefined;
+    myHeaders.set("Content-Type", "text/xml")
+    myHeaders.set("Cookie", getCookiesString(loginCookiesMap));
+    requestOptions.headers = myHeaders;
+
+    //let secondIdentityResponse = await fetch(store.get("config.baseUrl") + "/authenticated/identity", requestOptions);
+    //let secondIdentityResponseAuthReq = secondIdentityResponse.headers.get('x-com-ibm-team-repository-web-auth-msg');
+    //if(secondIdentityResponseAuthReq !== null || secondIdentityResponse.status !== 200) {
+    //    console.log('Unsuccessful auth');
+    //    return new Map();
+    //}
+
+    let jsessionCookie = secondSecurityCheckResponse.headers.get("set-cookie")?.split(" ")?.find(c => c.startsWith("JSESSIONID"))?.replace(";", "") || loginCookiesMap.get("JSESSIONID");
     if(jsessionCookie) {
-        cookiesList.push(jsessionCookie);
+        loginCookiesMap.set("JSESSIONID", jsessionCookie.split("=")[0])
     }
 
-    return cookiesList;
+    return loginCookiesMap;
 }
 
 ipcMain.handle("getUserNameAndDummyPass", (event) => {
@@ -387,8 +419,8 @@ async function loginProcess(username, password, saveCredentials, useSavedCredent
         store.set("config.useSavedPassword", useSavedCredentials)
     }
     let cookiesFromLogin = await login(username, password);
-    if(cookiesFromLogin.length >= 2) {
-        cookiesList = cookiesFromLogin;
+    if(cookiesFromLogin.size >= 2) {
+        cookiesMap = cookiesFromLogin;
         if(saveCredentials) {
             store.set("pass", safeStorage.encryptString(password));
             store.set("user", username);
@@ -475,16 +507,16 @@ async function recursivelyCheckAllRemainingData(url, selectors, size = STEPS, po
     return list;
 }
 async function sendData(url, method = 'POST', body = {}) {
-    let jsessionid = cookiesList.find(c => c.startsWith("JSESSIONID"))?.split("=")[1];
+    let jsessionid = cookiesMap.get("JSESSIONID");
     let workitems = await fetch(url, {
         method: method,
         agent: agent,
         headers: {
-            'Cookie': cookiesList.join(";"),
+            'Cookie': getCookiesString(),
             'X-Jazz-CSRF-Prevent': jsessionid,
             'Accept': 'application/x-oslc-cm-change-request+json',
             'Content-Type': 'application/json'
-            //'Cookie': cookiesList.map(cookie => `${cookie.name}=${cookie.value}`).join(";")
+            //'Cookie': cookiesMap.map(cookie => `${cookie.name}=${cookie.value}`).join(";")
         },
         body: JSON.stringify(body)
     });
@@ -492,11 +524,11 @@ async function sendData(url, method = 'POST', body = {}) {
     console.log(await workitems.text())
 }
 async function getData(url, overrideStatus = false, customHeader = {}) {
-    let jsessionid = cookiesList.find(c => c.startsWith("JSESSIONID"))?.split("=")[1];
+    let jsessionid = cookiesMap.get("JSESSIONID");
     let inputHeaders = {
-        'Cookie': cookiesList.join(";"),
-        'X-Jazz-CSRF-Prevent': jsessionid
-        //'Cookie': cookiesList.map(cookie => `${cookie.name}=${cookie.value}`).join(";")
+        'Cookie': getCookiesString(),
+        'X-Jazz-CSRF-Prevent': jsessionid,
+        //'Cookie': cookiesMap.map(cookie => `${cookie.name}=${cookie.value}`).join(";")
     }
     for (const ch in customHeader) {
         inputHeaders[ch] = customHeader[ch];
