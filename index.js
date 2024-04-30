@@ -320,31 +320,39 @@ async function login(username, password) {
     let url = new URL(store.get("config.baseUrl"));
     myHeaders.append("Referer", `${store.get("config.baseUrl")}/authenticated/identity`);
     myHeaders.append("Host", `${url.host}`);
-    //myHeaders.append("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
     myHeaders.append("Content-Type", "text/xml");
     myHeaders.append("Origin", `${url.protocol}//${url.host}`);
-    myHeaders.append("JazzFormAuth", "Form")
-    myHeaders.append("X-Requested-With","XMLHttpRequest")
 
     var requestOptions = {
         agent: new https.Agent({
             rejectUnauthorized: false
         }),
-        method: 'POST',
+        method: 'GET',
         headers: myHeaders,
-        body: new URLSearchParams({
-            j_username: username,
-            j_password: password
-        }),
+        body: undefined,
         redirect: 'manual'
     };
 
-    let identityResponse = await fetch(store.get("config.baseUrl") + "/authenticated/identity", requestOptions);
+    let rootResponse = await fetch(store.get("config.baseUrl"), requestOptions);
+    if(!rootResponse.headers.get('set-cookie')) {
+        return new Map();
+    }
+    addCookiesToCookiesMap(rootResponse?.headers?.raw()?.["set-cookie"], loginCookiesMap)
+    myHeaders.set("Cookie", getCookiesString(loginCookiesMap));
+    requestOptions.headers = myHeaders;
+
+
+    let identityResponse = await fetch(store.get("config.baseUrl") + "/secure/authenticated/identity", requestOptions);
     if(!identityResponse.headers.get('set-cookie')) {
         return new Map();
     }
     addCookiesToCookiesMap(identityResponse?.headers?.raw()?.["set-cookie"], loginCookiesMap)
 
+    requestOptions.body = new URLSearchParams({
+        j_username: username,
+        j_password: password
+    });
+    requestOptions.method = "POST"
     requestOptions.redirect = 'manual';
     myHeaders.set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
     myHeaders.set("Cookie", getCookiesString(loginCookiesMap));
@@ -356,18 +364,12 @@ async function login(username, password) {
     }
 
     addCookiesToCookiesMap(firstSecurityCheckResponse?.headers?.raw()?.["set-cookie"], loginCookiesMap);
+
+    loginCookiesMap.set("JazzFormAuth", "Form")
     requestOptions.redirect = 'follow';
     myHeaders.set("Cookie", getCookiesString(loginCookiesMap));
     requestOptions.headers = myHeaders;
 
-    let secondSecurityCheckResponse = await fetch(store.get("config.baseUrl") + "/auth/j_security_check", requestOptions);
-    let authreq = secondSecurityCheckResponse.headers.get('x-com-ibm-team-repository-web-auth-msg');
-    if(authreq !== null || secondSecurityCheckResponse.status !== 200) {
-        console.log('Unsuccessful auth');
-        return new Map();
-    }
-
-    addCookiesToCookiesMap(secondSecurityCheckResponse?.headers?.raw()?.["set-cookie"], loginCookiesMap);
     requestOptions.redirect = 'manual';
     requestOptions.method = "GET"
     requestOptions.body = undefined;
@@ -375,14 +377,14 @@ async function login(username, password) {
     myHeaders.set("Cookie", getCookiesString(loginCookiesMap));
     requestOptions.headers = myHeaders;
 
-    //let secondIdentityResponse = await fetch(store.get("config.baseUrl") + "/authenticated/identity", requestOptions);
-    //let secondIdentityResponseAuthReq = secondIdentityResponse.headers.get('x-com-ibm-team-repository-web-auth-msg');
-    //if(secondIdentityResponseAuthReq !== null || secondIdentityResponse.status !== 200) {
-    //    console.log('Unsuccessful auth');
-    //    return new Map();
-    //}
+    let secondIdentityResponse = await fetch(store.get("config.baseUrl") + "/authenticated/identity", requestOptions);
+    let secondIdentityResponseAuthReq = secondIdentityResponse.headers.get('x-com-ibm-team-repository-web-auth-msg');
+    if(secondIdentityResponseAuthReq !== null || secondIdentityResponse.status !== 200) {
+        console.log('Unsuccessful auth');
+        return new Map();
+    }
 
-    let jsessionCookie = secondSecurityCheckResponse.headers.get("set-cookie")?.split(" ")?.find(c => c.startsWith("JSESSIONID"))?.replace(";", "") || loginCookiesMap.get("JSESSIONID");
+    let jsessionCookie = loginCookiesMap.get("JSESSIONID");
     if(jsessionCookie) {
         loginCookiesMap.set("JSESSIONID", jsessionCookie.split("=")[0])
     }
