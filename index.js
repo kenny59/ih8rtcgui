@@ -294,7 +294,7 @@ ipcMain.handle("loadWorkItems", async (event, projectArea, startDateString, endD
     return allDataList;
 });
 
-function addCookiesToCookiesMap(/** String[] */listOfCookies, specificCookiesMap) {
+function addCookiesToCookiesMap(/** String[] */listOfCookies, specificCookiesMap = new Map()) {
     listOfCookies?.forEach(cookies => {
         let [,k,v] = cookies.match(/(.*?)=(.*)/)
         if(!specificCookiesMap) {
@@ -308,7 +308,7 @@ function addCookiesToCookiesMap(/** String[] */listOfCookies, specificCookiesMap
 function getCookiesString(specificCookiesMap) {
     let allowedCookies = ["JSESSIONID", "LtpaToken2", "WASReqURL", "Node-web"]
     let cmap = specificCookiesMap || cookiesMap;
-    return [...cmap.entries()].filter((entry, index) => entry[1] && (!specificCookiesMap ? allowedCookies.includes(entry[0]) : true)).map((entry,index) => `${entry[0]}=${entry[1]}`).join(";");
+    return [...cmap.entries()].filter((entry, index) => entry[1]).map((entry,index) => `${entry[0]}=${entry[1]}`).join(";");
 }
 
 /**
@@ -334,19 +334,16 @@ async function login(username, password) {
     };
 
     let rootResponse = await fetch(store.get("config.baseUrl"), requestOptions);
-    if(!rootResponse.headers.get('set-cookie')) {
-        return new Map();
-    }
+
     addCookiesToCookiesMap(rootResponse?.headers?.raw()?.["set-cookie"], loginCookiesMap)
     myHeaders.set("Cookie", getCookiesString(loginCookiesMap));
     requestOptions.headers = myHeaders;
 
 
     let identityResponse = await fetch(store.get("config.baseUrl") + "/secure/authenticated/identity", requestOptions);
-    if(!identityResponse.headers.get('set-cookie')) {
-        return new Map();
-    }
-    addCookiesToCookiesMap(identityResponse?.headers?.raw()?.["set-cookie"], loginCookiesMap)
+
+    addCookiesToCookiesMap(identityResponse?.headers?.raw()?.["set-cookie"]?.filter(c => !c.startsWith("JSESSIONID")), loginCookiesMap)
+
 
     requestOptions.body = new URLSearchParams({
         j_username: username,
@@ -359,34 +356,12 @@ async function login(username, password) {
     requestOptions.headers = myHeaders;
 
     let firstSecurityCheckResponse = await fetch(store.get("config.baseUrl") + "/auth/j_security_check", requestOptions);
-    if(!firstSecurityCheckResponse.headers.get('set-cookie')) {
-        return new Map();
-    }
 
     addCookiesToCookiesMap(firstSecurityCheckResponse?.headers?.raw()?.["set-cookie"], loginCookiesMap);
 
-    loginCookiesMap.set("JazzFormAuth", "Form")
-    requestOptions.redirect = 'follow';
-    myHeaders.set("Cookie", getCookiesString(loginCookiesMap));
-    requestOptions.headers = myHeaders;
-
-    requestOptions.redirect = 'manual';
-    requestOptions.method = "GET"
-    requestOptions.body = undefined;
-    myHeaders.set("Content-Type", "text/xml")
-    myHeaders.set("Cookie", getCookiesString(loginCookiesMap));
-    requestOptions.headers = myHeaders;
-
-    let secondIdentityResponse = await fetch(store.get("config.baseUrl") + "/authenticated/identity", requestOptions);
-    let secondIdentityResponseAuthReq = secondIdentityResponse.headers.get('x-com-ibm-team-repository-web-auth-msg');
-    if(secondIdentityResponseAuthReq !== null || secondIdentityResponse.status !== 200) {
+    if(firstSecurityCheckResponse.headers?.raw()?.["x-com-ibm-team-repository-web-auth-msg"] || !loginCookiesMap.get("JSESSIONID")) {
         console.log('Unsuccessful auth');
-        return new Map();
-    }
-
-    let jsessionCookie = loginCookiesMap.get("JSESSIONID");
-    if(jsessionCookie) {
-        loginCookiesMap.set("JSESSIONID", jsessionCookie.split("=")[0])
+        return new Map()
     }
 
     return loginCookiesMap;
