@@ -287,7 +287,7 @@ ipcMain.handle("loadWorkItems", async (event, projectArea, startDateString, endD
     let pos = 0;
     let filterString = andFilters.join(" and ");
     if(orFilters && orFilters.length > 0) filterString += " and " + orFilters.join(" or ");
-    let workItemsUrl = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[${filterString}]/(id|summary|state/name|modified|owner/name|tags|subscriptions/name|state/workflow/id|state/name)`
+    let workItemsUrl = `${store.get("config.baseUrl")}/rpt/repository/workitem?fields=workitem/workItem[${filterString}]/(id|summary|state/name|modified|owner/name|tags|subscriptions/name|state/workflow/id|state/name|itemHistory/modifiedBy/name)`
     allDataList = [];
     let text = await recursivelyCheckAllRemainingData(workItemsUrl, ['workitem', 'workItem']);
     allDataList = text;

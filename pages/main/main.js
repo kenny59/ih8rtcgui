@@ -267,6 +267,9 @@ let DROPDOWN_COLUMNS = ["State", "Owner"];
             { data: 'subscriptions', defaultContent: '', width: '15%', className: 'wrap_everything', render: (data, type, row, meta) => {
                     return Array.isArray(data) ? data?.map(d => d.name).join(", ") : data?.name
                 }},
+            { data: 'itemHistory', defaultContent: '', width: '15%', className: 'wrap_everything', render: (data, type, row, meta) => {
+                    return Array.isArray(data) ? [...new Set(data?.map(d => d?.modifiedBy?.name))].join(", ") : data?.modifiedBy.name
+                }},
             { data: 'tags', defaultContent: '', className: 'wrap_everything', render: (data, type, row, meta) => {
                     return data?.split("|").filter(e => e).join(", ")
             }}
